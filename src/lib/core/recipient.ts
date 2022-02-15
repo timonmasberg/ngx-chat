@@ -1,6 +1,6 @@
 import { JID } from '@xmpp/jid';
 import { Contact } from './contact';
-import { Room } from '../services/adapters/xmpp/plugins/multi-user-chat/room';
+import { Room } from './room';
 
 export type Recipient = Contact | Room;
 

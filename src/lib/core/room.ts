@@ -1,14 +1,14 @@
 import { JID } from '@xmpp/jid';
 import { ReplaySubject, Subject } from 'rxjs';
-import { dummyAvatarRoom } from '../../../../../core/contact-avatar';
-import { DateMessagesGroup, MessageStore } from '../../../../../core/message-store';
-import { LogService } from '../../../../log.service';
+import { dummyAvatarRoom } from './contact-avatar';
+import { DateMessagesGroup, MessageStore } from './message-store';
+import { LogService } from '../services/log.service';
 import { jid as parseJid } from '@xmpp/client';
-import { isJid, Recipient } from '../../../../../core/recipient';
-import { RoomMetadata } from './multi-user-chat.plugin';
-import { RoomOccupant } from './room-occupant';
-import { RoomMessage } from './room-message';
-import { OccupantChange } from './occupant-change';
+import { isJid, Recipient } from './recipient';
+import { RoomMetadata } from '../services/adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';
+import { RoomOccupant } from '../services/adapters/xmpp/plugins/multi-user-chat/room-occupant';
+import { RoomMessage } from '../services/adapters/xmpp/plugins/multi-user-chat/room-message';
+import { OccupantChange } from '../services/adapters/xmpp/plugins/multi-user-chat/occupant-change';
 
 export class Room {
 

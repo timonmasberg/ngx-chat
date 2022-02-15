@@ -9,7 +9,7 @@ import {FileUploadHandler} from '../../../../hooks/file-upload-handler';
 /**
  * XEP-0363 http file upload
  */
-export class HttpFileUploadPlugin extends AbstractXmppPlugin implements FileUploadHandler {
+export class XmppHttpFileUploadPlugin extends AbstractXmppPlugin implements FileUploadHandler {
 
     private fileUploadSupported: boolean;
     private uploadService: Promise<Service>;

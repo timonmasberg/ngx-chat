@@ -1,29 +1,33 @@
-import { Injectable } from '@angular/core';
-import { jid as parseJid } from '@xmpp/client';
-import { BehaviorSubject, combineLatest, merge, Observable, Subject } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
-import { ChatActionContext } from '../../../components/chat-window/chat-window.component';
-import { Contact } from '../../../core/contact';
-import { dummyAvatarContact } from '../../../core/contact-avatar';
-import { LogInRequest } from '../../../core/log-in-request';
-import { ChatPlugin } from '../../../core/plugin';
-import { Recipient } from '../../../core/recipient';
-import { Stanza } from '../../../core/stanza';
-import { Translations } from '../../../core/translations';
-import { defaultTranslations } from '../../../core/translations-default';
-import { ChatService, ConnectionStates } from '../../chat-service';
-import { ContactFactoryService } from '../../contact-factory.service';
-import { LogService } from '../../log.service';
-import { MessageArchivePlugin } from './plugins/message-archive.plugin';
-import { MessagePlugin } from './plugins/message.plugin';
-import { MultiUserChatPlugin } from './plugins/multi-user-chat/multi-user-chat.plugin';
-import { RosterPlugin } from './plugins/roster.plugin';
-import { XmppChatConnectionService, XmppChatStates } from './xmpp-chat-connection.service';
+import {Injectable} from '@angular/core';
+import {jid as parseJid} from '@xmpp/client';
+import {BehaviorSubject, combineLatest, merge, Observable, Subject} from 'rxjs';
+import {filter, map} from 'rxjs/operators';
+import {ChatActionContext} from '../../../components/chat-window/chat-window.component';
+import {Contact} from '../../../core/contact';
+import {dummyAvatarContact} from '../../../core/contact-avatar';
+import {LogInRequest} from '../../../core/log-in-request';
+import {ChatPlugin} from '../../../core/plugin';
+import {Recipient} from '../../../core/recipient';
+import {Room} from '../../../core/room';
+import {Stanza} from '../../../core/stanza';
+import {Translations} from '../../../core/translations';
+import {defaultTranslations} from '../../../core/translations-default';
+import {ChatService, ConnectionStates} from '../../chat-service';
+import {ContactFactoryService} from '../../contact-factory.service';
+import {LogService} from '../../log.service';
+import {MessageArchivePlugin} from './plugins/message-archive.plugin';
+import {MessagePlugin} from './plugins/message.plugin';
+import {MultiUserChatPlugin} from './plugins/multi-user-chat/multi-user-chat.plugin';
+import {RosterPlugin} from './plugins/roster.plugin';
+import {XmppChatConnectionService, XmppChatStates} from './xmpp-chat-connection.service';
+import {XmppHttpFileUploadPlugin} from './plugins/xmpp-http-file-upload.plugin';
+import {FileUploadHandler} from 'src/public-api';
 
 @Injectable()
 export class XmppChatAdapter implements ChatService {
 
     readonly message$ = new Subject<Contact>();
+    readonly groupMessage$ = new Subject<Room>();
     readonly messageSent$: Subject<Contact> = new Subject();
 
     readonly contacts$ = new BehaviorSubject<Contact[]>([]);
@@ -126,6 +130,9 @@ export class XmppChatAdapter implements ChatService {
     addPlugins(plugins: ChatPlugin[]) {
         plugins.forEach(plugin => {
             this.plugins.push(plugin);
+            if (plugin.constructor === MultiUserChatPlugin) {
+                (plugin as MultiUserChatPlugin).message$.subscribe(this.groupMessage$.next);
+            }
         });
     }
 
@@ -189,7 +196,23 @@ export class XmppChatAdapter implements ChatService {
         return this.getPlugin(MessageArchivePlugin).loadAllMessages();
     }
 
-    getPlugin<T extends ChatPlugin>(constructor: new(...args: any[]) => T): T {
+    reconnectSilently(): void {
+        this.chatConnectionService.reconnectSilently();
+    }
+
+    reconnect() {
+        return this.logIn(this.lastLogInRequest);
+    }
+
+    getFileUploadHandler(): FileUploadHandler {
+        return this.plugins.find(plugin => plugin.constructor === XmppHttpFileUploadPlugin) as XmppHttpFileUploadPlugin;
+    }
+
+    /**
+     * Returns the plugin instance for the given constructor
+     * @param constructor The plugin constructor, e.g. {@link RosterPlugin}
+     */
+    private getPlugin<T extends ChatPlugin>(constructor: new(...args: any[]) => T): T {
         for (const plugin of this.plugins) {
             if (plugin.constructor === constructor) {
                 return plugin as T;
@@ -217,14 +240,6 @@ export class XmppChatAdapter implements ChatService {
             this.logService.warn('unknown stanza <=', stanza.toString());
         }
 
-    }
-
-    reconnectSilently(): void {
-        this.chatConnectionService.reconnectSilently();
-    }
-
-    reconnect() {
-        return this.logIn(this.lastLogInRequest);
     }
 
 }

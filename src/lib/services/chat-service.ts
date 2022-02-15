@@ -1,11 +1,12 @@
-import { InjectionToken } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { ChatAction } from '../components/chat-window/chat-window.component';
-import { Contact } from '../core/contact';
-import { LogInRequest } from '../core/log-in-request';
-import { ChatPlugin } from '../core/plugin';
-import { Recipient } from '../core/recipient';
-import { Translations } from '../core/translations';
+import {InjectionToken} from '@angular/core';
+import {BehaviorSubject, Observable} from 'rxjs';
+import {Room} from '../core/room';
+import {ChatAction} from '../components/chat-window/chat-window.component';
+import {Contact} from '../core/contact';
+import {LogInRequest} from '../core/log-in-request';
+import {Recipient} from '../core/recipient';
+import {Translations} from '../core/translations';
+import {FileUploadHandler} from '../hooks/file-upload-handler';
 
 /**
  * The chat service token gives you access to the main chat api and is implemented by default with an XMPP adapter,
@@ -30,6 +31,11 @@ export interface ChatService {
      * Will emit the corresponding contact when a new message arrive.
      */
     message$: Observable<Contact>;
+
+    /**
+     * Will emit the corresponding room when a new message arrive.
+     */
+    groupMessage$: Observable<Room>;
 
     /**
      * Lifecycle state machine. Starts in the state "disconnected". When logging in, the state will change to "connecting".
@@ -134,7 +140,7 @@ export interface ChatService {
     /**
      * Logs the user in. Will modify state$ accordingly. If login fails, state will stay in 'disconnected'.
      */
-    logIn(logInRequest: LogInRequest): void;
+    logIn(logInRequest: LogInRequest): Promise<void>;
 
     /**
      * Disconnects from the server, clears contacts$, sets state$ to 'disconnected'.
@@ -154,12 +160,6 @@ export interface ChatService {
     loadCompleteHistory(): Promise<void>;
 
     /**
-     * Returns the plugin instance for the given constructor
-     * @param constructor The plugin constructor, e.g. {@link RosterPlugin}
-     */
-    getPlugin<T extends ChatPlugin>(constructor: new(...args: any[]) => T): T;
-
-    /**
      * Tries to transparently (= without the user noticing) reconnect to the chat server.
      */
     reconnectSilently(): void;
@@ -169,4 +169,9 @@ export interface ChatService {
      */
     reconnect(): void;
 
+    /**
+     * Returns the FileUploadHandler for the chosen interface as they have deep dependencies towards the chosen chat system they should
+     * be handled separately.
+     */
+    getFileUploadHandler(): FileUploadHandler;
 }

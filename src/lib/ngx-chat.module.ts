@@ -23,7 +23,7 @@ import { LinksDirective } from './directives/links.directive';
 import { BlockPlugin } from './services/adapters/xmpp/plugins/block.plugin';
 import { BookmarkPlugin } from './services/adapters/xmpp/plugins/bookmark.plugin';
 import { EntityTimePlugin } from './services/adapters/xmpp/plugins/entity-time.plugin';
-import { HttpFileUploadPlugin } from './services/adapters/xmpp/plugins/http-file-upload.plugin';
+import { XmppHttpFileUploadPlugin } from './services/adapters/xmpp/plugins/xmpp-http-file-upload.plugin';
 import { MessageArchivePlugin } from './services/adapters/xmpp/plugins/message-archive.plugin';
 import { MessageCarbonsPlugin } from './services/adapters/xmpp/plugins/message-carbons.plugin';
 import { MessageStatePlugin } from './services/adapters/xmpp/plugins/message-state.plugin';
@@ -48,6 +48,7 @@ import { CHAT_SERVICE_TOKEN, ChatService } from './services/chat-service';
 import { ContactFactoryService } from './services/contact-factory.service';
 import { LogService } from './services/log.service';
 import { FILE_UPLOAD_HANDLER_TOKEN } from './hooks/file-upload-handler';
+import {ConverseXmppChatService} from './services/adapters/converse-xmpp/converse-xmpp-chat.service';
 
 @NgModule({
     imports: [
@@ -120,8 +121,31 @@ export class NgxChatModule {
 
     }
 
+    static forRootConverse(): ModuleWithProviders<NgxChatModule> {
+
+        return {
+            ngModule: NgxChatModule,
+            providers: [
+                ChatBackgroundNotificationService,
+                ChatListStateService,
+                LogService,
+                XmppClientFactoryService,
+                {
+                    provide: CHAT_SERVICE_TOKEN,
+                    useClass: ConverseXmppChatService,
+                },
+                {
+                    provide: FILE_UPLOAD_HANDLER_TOKEN,
+                    deps: [CHAT_SERVICE_TOKEN],
+                    useFactory: NgxChatModule.fileUploadHandlerFactory,
+                },
+            ],
+        };
+
+    }
+
     private static fileUploadHandlerFactory(chatService: ChatService) {
-        return chatService.getPlugin(HttpFileUploadPlugin);
+        return chatService.getFileUploadHandler();
     }
 
     private static xmppChatAdapter(
@@ -156,7 +180,7 @@ export class NgxChatModule {
             new RegistrationPlugin(logService, ngZone),
             new MessageCarbonsPlugin(xmppChatAdapter),
             unreadMessageCountPlugin,
-            new HttpFileUploadPlugin(httpClient, serviceDiscoveryPlugin, xmppChatAdapter, logService),
+            new XmppHttpFileUploadPlugin(httpClient, serviceDiscoveryPlugin, xmppChatAdapter, logService),
             new MessageStatePlugin(publishSubscribePlugin, xmppChatAdapter, chatMessageListRegistryService, logService,
                 entityTimePlugin),
             new MucSubPlugin(xmppChatAdapter, serviceDiscoveryPlugin),

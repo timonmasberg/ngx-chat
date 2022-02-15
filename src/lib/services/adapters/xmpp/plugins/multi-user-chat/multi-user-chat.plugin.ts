@@ -12,7 +12,7 @@ import { AbstractXmppPlugin } from '../abstract-xmpp-plugin';
 import { MessageReceivedEvent } from '../message.plugin';
 import { ServiceDiscoveryPlugin } from '../service-discovery.plugin';
 import { Presence } from '../../../../../core/presence';
-import { Room } from './room';
+import { Room } from '../../../../../core/room';
 import { Affiliation, AffiliationModification } from './affiliation';
 import { Role, RoleModification } from './role';
 import { RoomUser } from './room-user';

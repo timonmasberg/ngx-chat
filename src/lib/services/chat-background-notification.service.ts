@@ -1,9 +1,8 @@
-import { Inject, Injectable } from '@angular/core';
-import { JID } from '@xmpp/jid';
-import { Contact } from '../core/contact';
-import { MultiUserChatPlugin} from './adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';
-import { CHAT_SERVICE_TOKEN, ChatService } from './chat-service';
-import { Room } from './adapters/xmpp/plugins/multi-user-chat/room';
+import {Inject, Injectable} from '@angular/core';
+import {JID} from '@xmpp/jid';
+import {Contact} from '../core/contact';
+import {CHAT_SERVICE_TOKEN, ChatService} from './chat-service';
+import {Room} from '../core/room';
 
 @Injectable()
 export class ChatBackgroundNotificationService {
@@ -14,7 +13,7 @@ export class ChatBackgroundNotificationService {
         chatService.message$.subscribe((msg) => {
             this.receivedDirectMessage(msg);
         });
-        chatService.getPlugin(MultiUserChatPlugin).message$.subscribe(async room => {
+        chatService.groupMessage$.subscribe(async room => {
             await this.receivedGroupMessage(room);
         });
     }

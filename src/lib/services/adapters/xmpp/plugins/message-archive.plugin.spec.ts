@@ -14,7 +14,7 @@ import SpyObj = jasmine.SpyObj;
 import { MessagePlugin } from './message.plugin';
 import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
 import { MultiUserChatPlugin } from './multi-user-chat/multi-user-chat.plugin';
-import { Room } from './multi-user-chat/room';
+import { Room } from '../../../../core/room';
 
 describe('message archive plugin', () => {
 
