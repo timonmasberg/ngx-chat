@@ -2,6 +2,7 @@ import { xml } from '@xmpp/client';
 import { Element } from 'ltx';
 import { BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription } from 'rxjs';
 import { debounceTime, delay, distinctUntilChanged, map, share } from 'rxjs/operators';
+import { JidToNumber } from 'src/public-api';
 import { Direction, Message } from '../../../../core/message';
 import { Recipient } from '../../../../core/recipient';
 import { findSortedInsertionIndexLast } from '../../../../core/utils-array';
@@ -17,7 +18,6 @@ const STORAGE_NGX_CHAT_LAST_READ_DATE = 'ngxchat:unreadmessagedate';
 const wrapperNodeName = 'entries';
 const nodeName = 'last-read';
 
-export type JidToNumber = Map<string, number>;
 type JidToLastReadTimestamp = Map<string, number>;
 
 class LastReadEntriesNodeBuilder extends AbstractStanzaBuilder {

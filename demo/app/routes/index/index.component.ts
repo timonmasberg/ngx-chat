@@ -7,10 +7,7 @@ import {
     ContactFactoryService,
     LogInRequest,
     LogLevel,
-    LogService,
-    MultiUserChatPlugin,
-    RegistrationPlugin,
-    UnreadMessageCountPlugin,
+    LogService
 } from '@pazznetwork/ngx-chat';
 
 @Component({
@@ -25,8 +22,6 @@ export class IndexComponent {
     password?: string;
     username?: string;
     otherJid?: string;
-    readonly multiUserChatPlugin: MultiUserChatPlugin;
-    readonly unreadMessageCountPlugin: UnreadMessageCountPlugin;
     registrationMessage?: string;
 
     constructor(
@@ -49,8 +44,6 @@ export class IndexComponent {
         this.username = contactData.username;
 
         this.chatService.state$.subscribe((state) => this.stateChanged(state));
-        this.multiUserChatPlugin = this.chatService.getPlugin(MultiUserChatPlugin);
-        this.unreadMessageCountPlugin = this.chatService.getPlugin(UnreadMessageCountPlugin);
 
         chatBackgroundNotificationService.enable();
 
@@ -76,7 +69,7 @@ export class IndexComponent {
     async onRegister() {
         this.registrationMessage = 'registering ...';
         try {
-            await this.chatService.getPlugin(RegistrationPlugin).register(
+            await this.chatService.register(
                 this.username,
                 this.password,
                 this.service,

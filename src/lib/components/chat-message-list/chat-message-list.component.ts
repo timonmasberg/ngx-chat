@@ -14,21 +14,21 @@ import {
     ViewChild,
     ViewChildren,
 } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
-import { debounceTime, filter, takeUntil } from 'rxjs/operators';
-import { Direction, Message } from '../../core/message';
-import { Recipient } from '../../core/recipient';
-import { BlockPlugin } from '../../services/adapters/xmpp/plugins/block.plugin';
-import { MessageArchivePlugin } from '../../services/adapters/xmpp/plugins/message-archive.plugin';
-import { ChatListStateService } from '../../services/chat-list-state.service';
-import { ChatMessageListRegistryService } from '../../services/chat-message-list-registry.service';
-import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/chat-service';
-import { ContactFactoryService } from '../../services/contact-factory.service';
-import { REPORT_USER_INJECTION_TOKEN, ReportUserService } from '../../services/report-user-service';
-import { ChatMessageComponent } from '../chat-message/chat-message.component';
-import { RoomMessage } from '../../services/adapters/xmpp/plugins/multi-user-chat/room-message';
-import { MultiUserChatPlugin } from '../../services/adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';
-import { Contact, Invitation } from '../../core/contact';
+import {Observable, Subject} from 'rxjs';
+import {debounceTime, filter, takeUntil} from 'rxjs/operators';
+import {Direction, Message} from '../../core/message';
+import {Recipient} from '../../core/recipient';
+import {BlockPlugin} from '../../services/adapters/xmpp/plugins/block.plugin';
+import {MessageArchivePlugin} from '../../services/adapters/xmpp/plugins/message-archive.plugin';
+import {ChatListStateService} from '../../services/chat-list-state.service';
+import {ChatMessageListRegistryService} from '../../services/chat-message-list-registry.service';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
+import {ContactFactoryService} from '../../services/contact-factory.service';
+import {REPORT_USER_INJECTION_TOKEN, ReportUserService} from '../../services/report-user-service';
+import {ChatMessageComponent} from '../chat-message/chat-message.component';
+import {RoomMessage} from '../../services/adapters/xmpp/plugins/multi-user-chat/room-message';
+import {MultiUserChatPlugin} from '../../services/adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';
+import {Contact, Invitation} from '../../core/contact';
 
 enum SubscriptionAction {
     PENDING_REQUEST,
@@ -57,7 +57,6 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
 
     Direction = Direction;
     SubscriptionAction = SubscriptionAction;
-    blockPlugin: BlockPlugin;
     subscriptionAction = SubscriptionAction.NO_PENDING_REQUEST;
     onTop$ = new Subject<IntersectionObserverEntry>();
 
@@ -75,7 +74,6 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
         private changeDetectorRef: ChangeDetectorRef,
         private contactFactory: ContactFactoryService,
     ) {
-        this.blockPlugin = this.chatService.getPlugin(BlockPlugin);
     }
 
     async ngOnInit() {
@@ -172,7 +170,7 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
 
     blockContact($event: MouseEvent) {
         $event.preventDefault();
-        this.blockPlugin.blockJid(this.recipient.jidBare.toString());
+        this.chatService.blockJid(this.recipient.jidBare.toString());
         this.chatListService.closeChat(this.recipient);
         this.subscriptionAction = SubscriptionAction.NO_PENDING_REQUEST;
     }
@@ -196,7 +194,7 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
             return false;
         }
         return this.subscriptionAction === SubscriptionAction.PENDING_REQUEST
-            || (this.blockPlugin.supportsBlock$.getValue() === true && this.subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS);
+            || (this.chatService.supportsPlugin.block && this.subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS);
     }
 
     async loadOlderMessagesBeforeViewport() {
@@ -252,14 +250,14 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
 
     async acceptRoomInvite(event: MouseEvent) {
         event.preventDefault();
-        await this.chatService.getPlugin(MultiUserChatPlugin).joinRoom(this.pendingRoomInvite.roomJid);
+        await this.chatService.joinRoom(this.pendingRoomInvite.roomJid);
         (this.recipient as Contact).pendingRoomInvite$.next(null);
         this.pendingRoomInvite = null;
     }
 
     async declineRoomInvite(event: MouseEvent) {
         event.preventDefault();
-        await this.chatService.getPlugin(MultiUserChatPlugin).declineRoomInvite(this.pendingRoomInvite.roomJid);
+        await this.chatService.declineRoomInvite(this.pendingRoomInvite.roomJid);
         (this.recipient as Contact).pendingRoomInvite$.next(null);
         this.pendingRoomInvite = null;
         this.chatService.removeContact(this.recipient.jidBare.toString());
@@ -284,7 +282,7 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
         try {
             // improve performance when loading lots of old messages
             this.changeDetectorRef.detach();
-            await this.chatService.getPlugin(MessageArchivePlugin).loadMostRecentUnloadedMessages(this.recipient);
+            await this.chatService.loadMostRecentUnloadedMessages(this.recipient);
         } finally {
             this.changeDetectorRef.reattach();
         }

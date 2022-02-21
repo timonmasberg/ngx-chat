@@ -2,26 +2,31 @@ import {Injectable} from '@angular/core';
 import {jid as parseJid} from '@xmpp/client';
 import {BehaviorSubject, combineLatest, merge, Observable, Subject} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
-import {ChatActionContext} from '../../../components/chat-window/chat-window.component';
 import {Contact} from '../../../core/contact';
 import {dummyAvatarContact} from '../../../core/contact-avatar';
 import {LogInRequest} from '../../../core/log-in-request';
 import {ChatPlugin} from '../../../core/plugin';
 import {Recipient} from '../../../core/recipient';
 import {Room} from '../../../core/room';
-import {Stanza} from '../../../core/stanza';
+import {IqResponseStanza, Stanza} from '../../../core/stanza';
 import {Translations} from '../../../core/translations';
 import {defaultTranslations} from '../../../core/translations-default';
-import {ChatService, ConnectionStates} from '../../chat-service';
+import {ChatActionContext, ChatService, ConnectionStates, JidToNumber, RoomCreationOptions, RoomSummary, RoomUser} from '../../chat-service';
 import {ContactFactoryService} from '../../contact-factory.service';
 import {LogService} from '../../log.service';
 import {MessageArchivePlugin} from './plugins/message-archive.plugin';
 import {MessagePlugin} from './plugins/message.plugin';
-import {MultiUserChatPlugin} from './plugins/multi-user-chat/multi-user-chat.plugin';
+import {MultiUserChatPlugin } from './plugins/multi-user-chat/multi-user-chat.plugin';
 import {RosterPlugin} from './plugins/roster.plugin';
 import {XmppChatConnectionService, XmppChatStates} from './xmpp-chat-connection.service';
 import {XmppHttpFileUploadPlugin} from './plugins/xmpp-http-file-upload.plugin';
-import {FileUploadHandler} from 'src/public-api';
+import {JID} from '@xmpp/jid';
+import { MucSubPlugin } from './plugins/muc-sub.plugin';
+import { RegistrationPlugin } from './plugins/registration.plugin';
+import { FileUploadHandler, Form } from 'src/public-api';
+import { MessageStatePlugin } from './plugins/message-state.plugin';
+import { BlockPlugin } from './plugins/block.plugin';
+import { UnreadMessageCountPlugin } from './plugins/unread-message-count.plugin';
 
 @Injectable()
 export class XmppChatAdapter implements ChatService {
@@ -71,6 +76,20 @@ export class XmppChatAdapter implements ChatService {
         },
     }];
 
+    supportsPlugin = {block: true, messageState: true,};
+
+    get rooms$(): Observable<Room[]> {
+        return this.getPlugin(MultiUserChatPlugin).rooms$;
+    }
+
+    get jidToUnreadCount$(): Observable<JidToNumber> {
+        return this.getPlugin(UnreadMessageCountPlugin).jidToUnreadCount$;
+    }
+
+    get unreadMessageCountSum$(): Observable<number> {
+        return this.getPlugin(UnreadMessageCountPlugin).unreadMessageCountSum$;
+    }
+
     private lastLogInRequest: LogInRequest;
 
     constructor(
@@ -92,6 +111,34 @@ export class XmppChatAdapter implements ChatService {
             // he should be seen now.
             this.contacts$.next(this.contacts$.getValue());
         });
+    }
+
+    async blockJid(bareJid: string): Promise<void> {
+        await this.getPlugin(BlockPlugin).blockJid(bareJid);
+    }
+
+    joinRoom(jid: JID): Promise<Room> {
+        return this.getPlugin(MultiUserChatPlugin).joinRoom(jid);
+    }
+
+    declineRoomInvite(jid: JID): void {
+        this.getPlugin(MultiUserChatPlugin).declineRoomInvite(jid).then();
+    }
+
+    queryRoomUserList(roomJid: JID): Promise<RoomUser[]> {
+        return this.getPlugin(MultiUserChatPlugin).queryUserList(roomJid);
+    }
+
+    getRoomConfiguration(roomJid: JID): Promise<Form> {
+        return this.getPlugin(MultiUserChatPlugin).getRoomConfiguration(roomJid);
+    }
+
+    loadMostRecentUnloadedMessages(recipient: Recipient) {
+        return this.getPlugin(MessageArchivePlugin).loadMostRecentUnloadedMessages(recipient);
+    }
+
+    getContactMessageState(bareJid: string) {
+       return this.getPlugin(MessageStatePlugin).getContactMessageState(bareJid);
     }
 
     private handleInternalStateChange(newState: XmppChatStates) {
@@ -242,4 +289,87 @@ export class XmppChatAdapter implements ChatService {
 
     }
 
+    register(username: string, password: string, service: string, domain: string): Promise<void> {
+        return this.getPlugin(RegistrationPlugin).register(username, password, service, domain);
+    }
+
+    banUserForRoom(occupantJid: JID, roomJid: JID, reason?: string): Promise<IqResponseStanza> {
+        return this.getPlugin(MultiUserChatPlugin).banUser(occupantJid, roomJid, reason);
+    }
+
+    unbanUserForRoom(occupantJid: JID, roomJid: JID): Promise<IqResponseStanza> {
+        return this.getPlugin(MultiUserChatPlugin).unbanUser(occupantJid, roomJid);
+    }
+
+    createRoom(options: RoomCreationOptions): Promise<Room> {
+       return this.getPlugin(MultiUserChatPlugin).createRoom(options);
+    }
+
+    destroyRoom(roomJid: JID): Promise<IqResponseStanza<"result">> {
+       return this.getPlugin(MultiUserChatPlugin).destroyRoom(roomJid);
+    }
+
+    kickOccupantFromRoom(nick: string, roomJid: JID, reason?: string): Promise<IqResponseStanza> {
+       return this.getPlugin(MultiUserChatPlugin).kickOccupant(nick, roomJid, reason);
+    }
+
+    leaveRoom(occupantJid: JID, status?: string): Promise<void> {
+       return this.getPlugin(MultiUserChatPlugin).leaveRoom(occupantJid, status);
+    }
+
+    retrieveSubscriptions(): Promise<Map<string, string[]>> {
+        return this.getPlugin(MucSubPlugin).retrieveSubscriptions();
+    }
+
+    subscribeRoom(roomJid: string, nodes: string[]): Promise<void> {
+       return this.getPlugin(MucSubPlugin).subscribeRoom(roomJid, nodes);
+    }
+
+    unsubscribeRoom(roomJid: string): Promise<void> {
+       return this.getPlugin(MucSubPlugin).unsubscribeRoom(roomJid);
+    }
+
+    kickOccupant(nick: string, roomJid: JID, reason?: string): Promise<IqResponseStanza> {
+        return this.getPlugin(MultiUserChatPlugin).kickOccupant(nick, roomJid, reason);
+    }
+
+    queryAllRooms(): Promise<RoomSummary[]> {
+        return this.getPlugin(MultiUserChatPlugin).queryAllRooms();
+    }
+
+    async changeRoomSubject(roomJid: JID, subject: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).changeRoomSubject(roomJid, subject);
+    }
+
+    async changeUserNicknameForRoom(newNick: string, roomJid: JID): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).changeUserNickname(newNick, roomJid);
+    }
+
+    async grantAdminForRoom(userJid: JID, roomJid: JID, reason?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).grantAdmin(userJid, roomJid, reason);
+    }
+
+    async grantMembershipForRoom(userJid: JID, roomJid: JID, reason?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).grantMembership(userJid, roomJid, reason);
+    }
+
+    async grantModeratorStatusForRoom(occupantNick: string, roomJid: JID, reason?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).grantModeratorStatus(occupantNick, roomJid, reason);
+    }
+
+    async inviteUserToRoom(inviteeJid: JID, roomJid: JID, invitationMessage?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).inviteUser(inviteeJid, roomJid, invitationMessage);
+    }
+
+    async revokeAdminForRoom(userJid: JID, roomJid: JID, reason?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).revokeAdmin(userJid, roomJid, reason);
+    }
+
+    async revokeMembershipForRoom(userJid: JID, roomJid: JID, reason?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).revokeMembership(userJid, roomJid, reason);
+    }
+
+    async revokeModeratorStatusForRoom(occupantNick: string, roomJid: JID, reason?: string): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).revokeModeratorStatus(occupantNick, roomJid, reason);
+    }
 }

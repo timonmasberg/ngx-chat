@@ -4,7 +4,6 @@ import {
     ChatService,
     ConnectionStates,
     JID,
-    MultiUserChatPlugin,
     Room,
     RoomOccupant,
     RoomSummary,
@@ -35,15 +34,13 @@ export class MucComponent implements OnInit, OnDestroy {
 
     occupants$: Observable<RoomOccupant[]>;
 
-    private readonly multiUserChatPlugin: MultiUserChatPlugin;
     private readonly ngDestroySubject = new Subject<void>();
 
     constructor(@Inject(CHAT_SERVICE_TOKEN) private chatService: ChatService) {
-        this.multiUserChatPlugin = chatService.getPlugin(MultiUserChatPlugin);
     }
 
     ngOnInit(): void {
-        this.rooms$ = from(this.multiUserChatPlugin.queryAllRooms());
+        this.rooms$ = from(this.chatService.queryAllRooms());
 
         this.selectedRoom$
             .pipe(takeUntil(this.ngDestroySubject))
@@ -57,7 +54,7 @@ export class MucComponent implements OnInit, OnDestroy {
             takeUntil(this.ngDestroySubject),
         );
 
-        this.multiUserChatPlugin.rooms$
+        this.chatService.rooms$
             .pipe(takeUntil(this.ngDestroySubject))
             .subscribe((rooms) => {
                 if (!this.currentRoom) {
@@ -113,48 +110,48 @@ export class MucComponent implements OnInit, OnDestroy {
     }
 
     async joinRoom(roomJid: JID) {
-        const room = await this.multiUserChatPlugin.joinRoom(roomJid);
+        const room = await this.chatService.joinRoom(roomJid);
         this.selectedRoomSubject.next(room);
     }
 
     async leaveRoom() {
-        await this.multiUserChatPlugin.leaveRoom(this.currentRoom.roomJid);
+        await this.chatService.leaveRoom(this.currentRoom.roomJid);
         this.selectedRoomSubject.next(null);
     }
 
     async changeRoomSubject() {
-        await this.multiUserChatPlugin.changeRoomSubject(this.currentRoom.roomJid, this.subject);
+        await this.chatService.changeRoomSubject(this.currentRoom.roomJid, this.subject);
     }
 
     async inviteUser() {
-        await this.multiUserChatPlugin.inviteUser(jid(this.inviteJid), this.currentRoom.roomJid);
+        await this.chatService.inviteUserToRoom(jid(this.inviteJid), this.currentRoom.roomJid);
     }
 
     async changeNick() {
-        await this.multiUserChatPlugin.changeUserNickname(this.nick, this.currentRoom.roomJid);
+        await this.chatService.changeUserNicknameForRoom(this.nick, this.currentRoom.roomJid);
     }
 
     async kick(occupant: RoomOccupant) {
-        await this.multiUserChatPlugin.kickOccupant(occupant.nick, this.currentRoom.roomJid);
+        await this.chatService.kickOccupant(occupant.nick, this.currentRoom.roomJid);
     }
 
     async ban(occupant: RoomOccupant) {
-        await this.multiUserChatPlugin.banUser(occupant.occupantJid, this.currentRoom.roomJid);
+        await this.chatService.banUserForRoom(occupant.occupantJid, this.currentRoom.roomJid);
     }
 
     async grantMembership() {
-        await this.multiUserChatPlugin.grantMembership(jid(this.memberJid), this.currentRoom.roomJid);
+        await this.chatService.grantMembershipForRoom(jid(this.memberJid), this.currentRoom.roomJid);
     }
 
     async revokeMembership() {
-        await this.multiUserChatPlugin.revokeMembership(jid(this.memberJid), this.currentRoom.roomJid);
+        await this.chatService.revokeMembershipForRoom(jid(this.memberJid), this.currentRoom.roomJid);
     }
 
     async grantModeratorStatus() {
-        await this.multiUserChatPlugin.grantModeratorStatus(this.moderatorNick, this.currentRoom.roomJid);
+        await this.chatService.grantModeratorStatusForRoom(this.moderatorNick, this.currentRoom.roomJid);
     }
 
     async revokeModeratorStatus() {
-        await this.multiUserChatPlugin.revokeModeratorStatus(this.moderatorNick, this.currentRoom.roomJid);
+        await this.chatService.revokeModeratorStatusForRoom(this.moderatorNick, this.currentRoom.roomJid);
     }
 }

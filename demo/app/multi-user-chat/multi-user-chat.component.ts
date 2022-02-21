@@ -1,20 +1,18 @@
-import { Component, Inject, ViewChild } from '@angular/core';
+import {Component, Inject, ViewChild} from '@angular/core';
 import {
     Affiliation,
     CHAT_SERVICE_TOKEN,
     ChatService,
     Form,
     JID,
-    MUC_SUB_EVENT_TYPE,
-    MucSubPlugin,
-    MultiUserChatPlugin,
-    RoomUser,
     Room,
     RoomCreationOptions,
     RoomSummary,
+    RoomUser,
 } from '@pazznetwork/ngx-chat';
-import { jid } from '@xmpp/jid';
-import { NgModel } from '@angular/forms';
+import {jid} from '@xmpp/jid';
+import {NgModel} from '@angular/forms';
+import { MUC_SUB_EVENT_TYPE } from 'src/public-api';
 
 @Component({
     selector: 'app-multi-user-chat',
@@ -23,8 +21,6 @@ import { NgModel } from '@angular/forms';
 })
 export class MultiUserChatComponent {
 
-    multiUserChatPlugin: MultiUserChatPlugin;
-    mucSubPlugin: MucSubPlugin;
     @ViewChild('occupantJidInput') occupantJidInput: NgModel;
     occupantJidText: string;
     occupantJid: JID | null = null;
@@ -36,8 +32,6 @@ export class MultiUserChatComponent {
     roomConfiguration: Form;
 
     constructor(@Inject(CHAT_SERVICE_TOKEN) public chatService: ChatService) {
-        this.multiUserChatPlugin = chatService.getPlugin(MultiUserChatPlugin);
-        this.mucSubPlugin = chatService.getPlugin(MucSubPlugin);
     }
 
     updateOccupantJid(enteredJid: string) {
@@ -50,29 +44,29 @@ export class MultiUserChatComponent {
     }
 
     async joinRoom(occupantJid: JID) {
-        this.selectedRoom = await this.multiUserChatPlugin.joinRoom(occupantJid);
+        this.selectedRoom = await this.chatService.joinRoom(occupantJid);
         this.occupantJid = occupantJid;
         this.occupantJidText = occupantJid.toString();
     }
 
     async subscribeWithMucSub(occupantJid: JID): Promise<void> {
-        await this.mucSubPlugin.subscribeRoom(occupantJid.toString(), [MUC_SUB_EVENT_TYPE.messages]);
+        await this.chatService.subscribeRoom(occupantJid.toString(), [MUC_SUB_EVENT_TYPE.messages]);
     }
 
     async unsubscribeFromMucSub(occupantJid: JID): Promise<void> {
-        await this.mucSubPlugin.unsubscribeRoom(occupantJid.toString());
+        await this.chatService.unsubscribeRoom(occupantJid.toString());
     }
 
     async getSubscriptions() {
-        this.mucSubSubscriptions = await this.mucSubPlugin.retrieveSubscriptions();
+        this.mucSubSubscriptions = await this.chatService.retrieveSubscriptions();
     }
 
     async queryUserList(occupantJid: JID) {
-        this.roomUserList = await this.multiUserChatPlugin.queryUserList(occupantJid.bare());
+        this.roomUserList = await this.chatService.queryRoomUserList(occupantJid.bare());
     }
 
     async getRoomConfiguration(occupantJid: JID) {
-        this.roomConfiguration = await this.multiUserChatPlugin.getRoomConfiguration(occupantJid.bare());
+        this.roomConfiguration = await this.chatService.getRoomConfiguration(occupantJid.bare());
     }
 
     displayMemberJid(member: RoomUser): string {
@@ -87,12 +81,12 @@ export class MultiUserChatComponent {
     }
 
     async destroyRoom(occupantJid: JID) {
-        await this.multiUserChatPlugin.destroyRoom(occupantJid);
+        await this.chatService.destroyRoom(occupantJid);
         await this.queryAllRooms();
     }
 
     async queryAllRooms() {
-        this.allRooms = await this.multiUserChatPlugin.queryAllRooms();
+        this.allRooms = await this.chatService.queryAllRooms();
     }
 
     createNewRoom(): void {
@@ -115,7 +109,7 @@ export class MultiUserChatComponent {
             return;
         }
 
-        const createdRoom = await this.multiUserChatPlugin.createRoom(this.newRoom);
+        const createdRoom = await this.chatService.createRoom(this.newRoom);
         this.updateOccupantJid(createdRoom.occupantJid.toString());
 
         this.newRoom = undefined;
@@ -127,16 +121,16 @@ export class MultiUserChatComponent {
 
     async kick(member: RoomUser) {
         const {nick} = this.findIdWithNick(member);
-        await this.multiUserChatPlugin.kickOccupant(nick, this.selectedRoom.jidBare);
+        await this.chatService.kickOccupant(nick, this.selectedRoom.jidBare);
     }
 
     async banOrUnban(member: RoomUser) {
         const memberJid = member.userIdentifiers[0].userJid.bare();
         if (member.affiliation === Affiliation.outcast) {
-            await this.multiUserChatPlugin.unbanUser(memberJid, this.selectedRoom.jidBare);
+            await this.chatService.unbanUserForRoom(memberJid, this.selectedRoom.jidBare);
             return;
         }
-        await this.multiUserChatPlugin.banUser(memberJid, this.selectedRoom.jidBare);
+        await this.chatService.banUserForRoom(memberJid, this.selectedRoom.jidBare);
     }
 
     async leaveRoom(roomJid: JID) {
@@ -145,6 +139,6 @@ export class MultiUserChatComponent {
             this.occupantJid = null;
             this.selectedRoom = null;
         }
-        await this.multiUserChatPlugin.leaveRoom(roomJid);
+        await this.chatService.leaveRoom(roomJid);
     }
 }

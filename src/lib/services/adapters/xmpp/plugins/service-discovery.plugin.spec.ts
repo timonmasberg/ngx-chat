@@ -14,6 +14,7 @@ describe('service discovery plugin', () => {
 
     let chatConnectionService: XmppChatConnectionService;
     let chatAdapter: XmppChatAdapter;
+    let serviceDiscoveryPlugin: ServiceDiscoveryPlugin;
     let xmppClientMock: jasmine.SpyObj<Client>;
 
     beforeEach(() => {
@@ -35,7 +36,8 @@ describe('service discovery plugin', () => {
         chatConnectionService.userJid = parseJid('me', 'jabber.example.com', 'something');
 
         chatAdapter = TestBed.inject(XmppChatAdapter);
-        chatAdapter.addPlugins([new ServiceDiscoveryPlugin(chatAdapter)]);
+        serviceDiscoveryPlugin = new ServiceDiscoveryPlugin(chatAdapter);
+        chatAdapter.addPlugins([serviceDiscoveryPlugin]);
     });
 
     it('should discover the multi user chat service', async () => {
@@ -81,7 +83,6 @@ describe('service discovery plugin', () => {
         });
 
         // when
-        const serviceDiscoveryPlugin = chatAdapter.getPlugin(ServiceDiscoveryPlugin);
         await serviceDiscoveryPlugin.onBeforeOnline();
         const service = await serviceDiscoveryPlugin.findService('conference', 'text');
 

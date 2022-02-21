@@ -70,7 +70,7 @@
             </li>
         </ul>
         <ul class="deny-actions"
-            *ngIf="(blockPlugin.supportsBlock$ | async) === true && subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS">
+            *ngIf="chatService.supportsPlugin.block && subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS">
             <li>
                 <a (click)="blockContact($event)" href="#">{{chatService.translations.block}}</a>
             </li>

@@ -3,7 +3,6 @@ import { Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 import { Presence } from '../../core/presence';
 import { Recipient } from '../../core/recipient';
-import { UnreadMessageCountPlugin } from '../../services/adapters/xmpp/plugins/unread-message-count.plugin';
 import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/chat-service';
 
 @Component({
@@ -26,7 +25,7 @@ export class RosterRecipientComponent implements OnInit {
     ) {}
 
     ngOnInit() {
-        this.unreadCount$ = this.chatService.getPlugin(UnreadMessageCountPlugin).jidToUnreadCount$
+        this.unreadCount$ = this.chatService.jidToUnreadCount$
             .pipe(
                 map(jidToUnreadCount => jidToUnreadCount.get(this.recipient.jidBare.toString()) || 0),
                 distinctUntilChanged(),

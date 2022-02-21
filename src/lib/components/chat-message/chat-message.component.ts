@@ -40,14 +40,11 @@ export class ChatMessageComponent implements OnInit {
 
     Direction = Direction;
 
-    private readonly messageStatePlugin: MessageStatePlugin;
-
     constructor(
         @Inject(CHAT_SERVICE_TOKEN) public chatService: ChatService,
         private httpClient: HttpClient,
         @Inject(CONTACT_CLICK_HANDLER_TOKEN) @Optional() public contactClickHandler: ChatContactClickHandler,
     ) {
-        this.messageStatePlugin = this.chatService.getPlugin(MessageStatePlugin);
     }
 
     ngOnInit() {
@@ -91,9 +88,9 @@ export class ChatMessageComponent implements OnInit {
         if (this.showMessageReadState) {
             if (this.message.state) {
                 return this.message.state;
-            } else if (this.messageStatePlugin && this.contact) {
+            } else if (this.chatService.supportsPlugin.messageState && this.contact) {
                 const date = this.message.datetime;
-                const states = this.messageStatePlugin.getContactMessageState(this.contact.jidBare.toString());
+                const states = this.chatService.getContactMessageState(this.contact.jidBare.toString());
                 return this.getStateForDate(date, states);
             }
         }

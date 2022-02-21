@@ -17,6 +17,7 @@ describe('roster plugin', () => {
 
     let chatConnectionService: XmppChatConnectionService;
     let chatAdapter: XmppChatAdapter;
+    let rosterPlugin: RosterPlugin;
     let contactFactory: ContactFactoryService;
     let xmppClientMock;
     let logService: LogService;
@@ -40,7 +41,8 @@ describe('roster plugin', () => {
         contactFactory = TestBed.inject(ContactFactoryService);
         chatAdapter = TestBed.inject(XmppChatAdapter);
         logService = TestBed.inject(LogService);
-        chatAdapter.addPlugins([new RosterPlugin(chatAdapter, logService)]);
+        rosterPlugin = new RosterPlugin(chatAdapter, logService);
+        chatAdapter.addPlugins([rosterPlugin]);
 
         chatConnectionService.userJid = parseJid('me', 'example.com', 'something');
     });
@@ -89,7 +91,7 @@ describe('roster plugin', () => {
                     ) as Stanza
                 );
             });
-            await chatAdapter.getPlugin(RosterPlugin).refreshRosterContacts();
+            await rosterPlugin.refreshRosterContacts();
             return chatAdapter.contacts$.getValue()[0];
         }
 
@@ -99,7 +101,7 @@ describe('roster plugin', () => {
             expect(contact.presence$.getValue())
                 .toEqual(Presence.unavailable);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource'})
             );
             expect(handled).toBeTruthy();
@@ -115,7 +117,7 @@ describe('roster plugin', () => {
             expect(contact.presence$.getValue())
                 .toEqual(Presence.unavailable);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource'},
                     xml('show', {}, show))
             );
@@ -147,7 +149,7 @@ describe('roster plugin', () => {
             contact.updateResourcePresence(contact.jidBare.toString() + '/bla', Presence.present);
             expect(contact.presence$.getValue()).toEqual(Presence.present);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com/bla', to: 'me@example.com/bla', type: 'unavailable'})
             );
             expect(handled).toBeTruthy();
@@ -185,7 +187,7 @@ describe('roster plugin', () => {
             contact.pendingIn$.next(true);
             contact.subscription$.next(ContactSubscription.to);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource', type: 'subscribe'})
             );
             expect(handled).toBeTruthy();
@@ -201,7 +203,7 @@ describe('roster plugin', () => {
             contact.pendingIn$.next(true);
             contact.subscription$.next(ContactSubscription.none);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource', type: 'subscribe'})
             );
             expect(handled).toBeTruthy();
@@ -216,7 +218,7 @@ describe('roster plugin', () => {
             const contact = contactFactory.createContact('test@example.com', 'jon doe');
             chatAdapter.contacts$.next([contact]);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource', type: 'subscribe'})
             );
             expect(handled).toBeTruthy();
@@ -225,7 +227,7 @@ describe('roster plugin', () => {
         });
 
         it('should add a pending in flag and create a contact when we never seen him before', async () => {
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource', type: 'subscribe'})
             );
             expect(handled).toBeTruthy();
@@ -243,7 +245,7 @@ describe('roster plugin', () => {
             contact.subscription$.next(ContactSubscription.none);
             contact.pendingOut$.next(true);
 
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource', type: 'subscribed'})
             );
             expect(handled).toBeTruthy();
@@ -258,7 +260,7 @@ describe('roster plugin', () => {
         });
 
         it('should not accept muc presence stanzas', async () => {
-            const handled = chatAdapter.getPlugin(RosterPlugin).handleStanza(
+            const handled = rosterPlugin.handleStanza(
                 xml('presence', {from: 'test@example.com', to: 'me@example.com/resource'},
                     xml('x', {xmlns: 'http://jabber.org/protocol/muc#user'})
                 )

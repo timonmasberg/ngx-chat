@@ -93,8 +93,8 @@
 
     <div>
         <h2>Unread messages count:</h2>
-        Sum unread messages: {{unreadMessageCountPlugin.unreadMessageCountSum$ | async}}
-        <pre>{{unreadMessageCountPlugin.jidToUnreadCount$ | async | keyvalue | json}}</pre>
+        Sum unread messages: {{this.chatService.unreadMessageCountSum$ | async}}
+        <pre>{{this.chatService.jidToUnreadCount$ | async | keyvalue | json}}</pre>
     </div>
     <h2>More:</h2>
     <a routerLink="/ui">Show mock chats</a>

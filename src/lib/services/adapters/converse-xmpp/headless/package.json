@@ -1,0 +1,54 @@
+{
+  "name": "@converse/headless",
+  "version": "9.0.0",
+  "description": "Converse.js Headless build",
+  "author": "cmrd Senya <senya@riseup.net>",
+  "homepage": "https://conversejs.org",
+  "license": "MPL-2.0",
+  "main": "dist/converse-headless.min.js",
+  "files": [
+    "*.js",
+    "*.json",
+    "dist/",
+    "README.md",
+    "utils/*.js",
+    "templates/*.html",
+    "templates/*.svg"
+  ],
+  "keywords": [
+    "converse.js",
+    "XMPP",
+    "Jabber",
+    "chat",
+    "messaging",
+    "chatrooms",
+    "webchat"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conversejs/converse.js.git"
+  },
+  "scripts": {
+    "test": "echo \\\"Error: run tests from root\\\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/conversejs/converse.js/issues"
+  },
+  "gitHead": "9641dcdc820e029b05930479c242d2b707bbe8e2",
+  "devDependencies": {},
+  "dependencies": {
+    "@converse/skeletor": "0.0.5",
+    "dayjs": "1.10.6",
+    "filesize": "^7.0.0",
+    "localforage": "^1.10.0",
+    "localforage-driver-memory": "^1.0.5",
+    "localforage-setitems": "^1.4.0",
+    "localforage-webextensionstorage-driver": "^2.0.0",
+    "lodash-es": "^4.17.21",
+    "pluggable.js": "3.0.1",
+    "sizzle": "^2.3.5",
+    "sprintf-js": "^1.1.2",
+    "strophe.js": "1.4.4",
+    "urijs": "^1.19.7"
+  }
+}

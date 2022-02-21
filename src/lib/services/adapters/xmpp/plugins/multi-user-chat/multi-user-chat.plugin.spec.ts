@@ -65,12 +65,12 @@ describe('multi user chat plugin', () => {
         };
 
         logService = TestBed.inject(LogService);
+        multiUserChatPlugin =   new MultiUserChatPlugin(chatAdapter, logService, serviceDiscoveryPluginMock);
+
         chatAdapter.addPlugins([
-            new MultiUserChatPlugin(chatAdapter, logService, serviceDiscoveryPluginMock),
+            multiUserChatPlugin,
             new MessageUuidPlugin(),
         ]);
-
-        multiUserChatPlugin = chatAdapter.getPlugin(MultiUserChatPlugin);
     });
 
     describe('room creation', () => {

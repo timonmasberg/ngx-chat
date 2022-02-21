@@ -9,7 +9,7 @@
         {{ chatService.translations.chat }}
     </div>
 
-    <ng-container *ngIf="(multiUserChatPlugin.rooms$ | async) as rooms">
+    <ng-container *ngIf="(chatService.rooms$ | async) as rooms">
         <ng-container *ngIf="rooms.length > 0">
             <div class="roster-group-header">{{chatService.translations.rooms}}</div>
 

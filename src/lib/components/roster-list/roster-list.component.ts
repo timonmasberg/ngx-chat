@@ -57,11 +57,8 @@ export class RosterListComponent implements OnInit {
     @Output()
     rosterStateChanged = new EventEmitter<'hidden' | 'shown'>();
 
-    multiUserChatPlugin: MultiUserChatPlugin;
-
     constructor(@Inject(CHAT_SERVICE_TOKEN) public chatService: ChatService,
                 private chatListService: ChatListStateService) {
-        this.multiUserChatPlugin = this.chatService.getPlugin(MultiUserChatPlugin);
     }
 
     ngOnInit() {
