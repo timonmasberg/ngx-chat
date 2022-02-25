@@ -54,7 +54,7 @@ export class MessageCarbonsPlugin extends AbstractXmppPlugin {
         if (!messageReceivedEvent.discard) {
             const {from, to} = messageElement.attrs;
             const contactJid = direction === Direction.in ? from : to;
-            const contact = this.xmppChatAdapter.getOrCreateContactById(contactJid);
+            const contact = this.xmppChatAdapter.getOrCreateContactByIdSync(contactJid);
             contact.addMessage(message);
 
             if (direction === Direction.in) {

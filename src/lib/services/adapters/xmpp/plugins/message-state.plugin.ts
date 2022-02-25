@@ -144,7 +144,7 @@ export class MessageStatePlugin extends AbstractXmppPlugin {
 
     private acknowledgeReceivedMessage(stanza: MessageWithBodyStanza): void {
         const {from} = stanza.attrs;
-        const isChatWithContactOpen = this.chatMessageListRegistry.isChatOpen(this.xmppChatAdapter.getOrCreateContactById(from));
+        const isChatWithContactOpen = this.chatMessageListRegistry.isChatOpen(this.xmppChatAdapter.getOrCreateContactByIdSync(from));
         const state = isChatWithContactOpen ? MessageState.RECIPIENT_SEEN : MessageState.RECIPIENT_RECEIVED;
         const messageId = MessageUuidPlugin.extractIdFromStanza(stanza);
         this.sendMessageStateNotification(parseJid(from), messageId, state).catch(e => this.logService.error('error sending state notification', e));
@@ -178,7 +178,7 @@ export class MessageStatePlugin extends AbstractXmppPlugin {
 
     private handleStateNotificationStanza(stateElement: Element, from: string): void {
         const {state, date} = stateElement.attrs;
-        const contact = this.xmppChatAdapter.getOrCreateContactById(from);
+        const contact = this.xmppChatAdapter.getOrCreateContactByIdSync(from);
         const stateDate = new Date(date);
         this.updateContactMessageState(contact.jidBare.toString(), state, stateDate);
     }

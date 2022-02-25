@@ -1,6 +1,6 @@
-import { Element } from 'ltx';
-import { jid as parseJid, JID } from '@xmpp/jid';
-import { xml } from '@xmpp/client';
+import {Element as LtxElement} from 'ltx';
+import {jid as parseJid, JID} from '@xmpp/jid';
+import {xml} from '@xmpp/client';
 
 // implements https://xmpp.org/extensions/xep-0004.html
 
@@ -83,21 +83,21 @@ export interface FieldOption {
     value: string;
 }
 
-function parseStringValue([valueEl]: Element[]): string {
+function parseStringValue([valueEl]: LtxElement[]): string {
     return valueEl?.getText();
 }
 
-function parseMultipleStringValues(valueEls: Element[]): string[] {
+function parseMultipleStringValues(valueEls: LtxElement[]): string[] {
     return valueEls.map(el => parseStringValue([el]));
 }
 
-function parseJidValue([valueEl]: Element[]): JID {
+function parseJidValue([valueEl]: LtxElement[]): JID {
     return valueEl && parseJid(valueEl.getText());
 }
 
 const valueParsers = {
     fixed: parseStringValue,
-    boolean: ([valueEl]: Element[]): boolean => {
+    boolean: ([valueEl]: LtxElement[]): boolean => {
         if (!valueEl) {
             return false;
         }
@@ -106,7 +106,7 @@ const valueParsers = {
     },
     hidden: parseStringValue,
     'jid-single': parseJidValue,
-    'jid-multi': (valueEls: Element[]): JID[] =>
+    'jid-multi': (valueEls: LtxElement[]): JID[] =>
         [
             ...new Set(
                 valueEls.map(el => parseStringValue([el])),
@@ -120,7 +120,7 @@ const valueParsers = {
     'text-multi': parseMultipleStringValues,
 };
 
-export function parseForm(formEl: Element): Form {
+export function parseForm(formEl: LtxElement): Form {
     if (formEl.name !== 'x' || formEl.getNS() !== FORM_NS) {
         throw new Error(`Provided element is not a form element: elementName=${formEl.name}, xmlns=${formEl.getNS()}, form=${formEl.toString()}`);
     }
@@ -152,6 +152,17 @@ export function parseForm(formEl: Element): Form {
                 } as FormField;
             }),
     };
+}
+
+export function toLtxElement(element: Element): LtxElement {
+    const attributes = element.getAttributeNames().reduce<Record<string, unknown>>((collection, attributeName) => {
+        collection[attributeName] = element.getAttribute(attributeName);
+        return collection;
+    }, {});
+
+    const ltxRoot = new LtxElement(element.nodeName, attributes);
+    ltxRoot.children = Array.from(element.children).map(el => toLtxElement(el));
+    return ltxRoot;
 }
 
 export function getField(form: Form, variable: string): FormField | undefined {
@@ -209,7 +220,7 @@ const valueSerializers: Record<FieldType, (field: FormField) => string[]> = {
     'text-multi': serializeTextualMultiField,
 };
 
-export function serializeToSubmitForm(form: Form): Element {
+export function serializeToSubmitForm(form: Form): LtxElement {
     const serializedFields = form.fields
         .reduce<[string, string[]][]>((collectedFields, field) => {
             const serializer = valueSerializers[field.type];

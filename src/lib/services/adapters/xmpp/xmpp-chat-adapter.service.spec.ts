@@ -1,20 +1,20 @@
-import { TestBed } from '@angular/core/testing';
-import { jid as parseJid, xml } from '@xmpp/client';
-import { first, take } from 'rxjs/operators';
-import { Contact } from '../../../core/contact';
-import { Direction } from '../../../core/message';
-import { Stanza } from '../../../core/stanza';
+import {TestBed} from '@angular/core/testing';
+import {jid as parseJid, xml} from '@xmpp/client';
+import {first, take} from 'rxjs/operators';
+import {Contact} from '../../../core/contact';
+import {Direction} from '../../../core/message';
+import {Stanza} from '../../../core/stanza';
 
-import { testLogService } from '../../../test/log-service';
-import { MockClientFactory } from '../../../test/xmppClientMock';
-import { CHAT_SERVICE_TOKEN } from '../../chat-service';
-import { ContactFactoryService } from '../../contact-factory.service';
-import { LogService } from '../../log.service';
-import { MessageUuidPlugin } from './plugins/message-uuid.plugin';
-import { MessagePlugin } from './plugins/message.plugin';
-import { XmppChatAdapter } from './xmpp-chat-adapter.service';
-import { XmppChatConnectionService } from './xmpp-chat-connection.service';
-import { XmppClientFactoryService } from './xmpp-client-factory.service';
+import {testLogService} from '../../../test/log-service';
+import {MockClientFactory} from '../../../test/xmppClientMock';
+import {CHAT_SERVICE_TOKEN} from '../../chat-service';
+import {ContactFactoryService} from '../../contact-factory.service';
+import {LogService} from '../../log.service';
+import {MessageUuidPlugin} from './plugins/message-uuid.plugin';
+import {MessagePlugin} from './plugins/message.plugin';
+import {XmppChatAdapter} from './xmpp-chat-adapter.service';
+import {XmppChatConnectionService} from './xmpp-chat-connection.service';
+import {XmppClientFactoryService} from './xmpp-client-factory.service';
 
 describe('XmppChatAdapter', () => {
 
@@ -113,8 +113,9 @@ describe('XmppChatAdapter', () => {
             });
         });
 
-        it('#messages$ in contact should emit message on received messages', (done) => {
-            chatService.getOrCreateContactById(contact1.jidBare.toString()).messages$.pipe(first()).subscribe(message => {
+        it('#messages$ in contact should emit message on received messages', async (done) => {
+            const serviceContact = await chatService.getOrCreateContactById(contact1.jidBare.toString());
+            serviceContact.messages$.pipe(first()).subscribe(message => {
                 expect(message.body).toEqual('message text');
                 expect(message.direction).toEqual(Direction.in);
                 done();
@@ -135,13 +136,14 @@ describe('XmppChatAdapter', () => {
 
         it('#messages$ should emit a message with the same id a second time, the message in the contact should only exist once', (done) => {
             let messagesSeen = 0;
-            chatService.message$.pipe(take(2)).subscribe(contact => {
+            chatService.message$.pipe(take(2)).subscribe(async contact => {
                 expect(contact.messages[0].body).toEqual('message text');
                 expect(contact.messages[0].direction).toEqual(Direction.in);
                 expect(contact.messages[0].id).toEqual('id');
                 messagesSeen++;
                 if (messagesSeen === 2) {
-                    expect(chatService.getContactById(contact1.jidBare.toString()).messages.length).toEqual(1);
+                    const serviceContact = await chatService.getContactById(contact1.jidBare.toString());
+                    expect(serviceContact.messages.length).toEqual(1);
                     done();
                 }
             });

@@ -88,8 +88,8 @@ describe('message carbons plugin', () => {
 
     it('should add the message to the contact', () => {
         messageCarbonsPlugin.handleStanza(validIncomingCarbonMessage);
-        expect(xmppChatAdapter.getContactById('juliet@capulet.example').messages.length).toEqual(1);
-        const savedMessage = xmppChatAdapter.getContactById('juliet@capulet.example').messages[0];
+        expect(xmppChatAdapter.getContactByIdSync('juliet@capulet.example').messages.length).toEqual(1);
+        const savedMessage = xmppChatAdapter.getContactByIdSync('juliet@capulet.example').messages[0];
         expect(savedMessage as any).toEqual(jasmine.objectContaining({
             body: 'What man art thou that, thus bescreen\'d in night, so stumblest on my counsel?',
             direction: Direction.in,

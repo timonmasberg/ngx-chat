@@ -145,7 +145,7 @@ export class NgxChatModule {
     }
 
     private static fileUploadHandlerFactory(chatService: ChatService) {
-        return chatService.getFileUploadHandler();
+        return chatService.fileUploadHandler;
     }
 
     private static xmppChatAdapter(

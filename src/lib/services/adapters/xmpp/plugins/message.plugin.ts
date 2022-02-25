@@ -98,7 +98,7 @@ export class MessagePlugin extends AbstractXmppPlugin {
         }
 
         const contactJid = isAddressedToMe ? messageStanza.attrs.from : messageStanza.attrs.to;
-        const contact = this.xmppChatAdapter.getOrCreateContactById(contactJid);
+        const contact = this.xmppChatAdapter.getOrCreateContactByIdSync(contactJid);
         contact.addMessage(message);
 
         const isRoomInviteMessage =

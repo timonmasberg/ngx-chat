@@ -69,11 +69,12 @@ export class IndexComponent {
     async onRegister() {
         this.registrationMessage = 'registering ...';
         try {
-            await this.chatService.register(
-                this.username,
-                this.password,
-                this.service,
-                this.domain,
+            await this.chatService.register({
+                username: this.username,
+                password: this.password,
+                service: this.service,
+                domain: this.domain,
+                }
             );
             this.registrationMessage = 'registration successful';
         } catch (e) {
@@ -90,8 +91,8 @@ export class IndexComponent {
         this.chatService.removeContact(this.otherJid);
     }
 
-    onOpenChat() {
-        this.chatListStateService.openChat(this.chatService.getOrCreateContactById(this.otherJid));
+    async onOpenChat() {
+        this.chatListStateService.openChat(await this.chatService.getOrCreateContactById(this.otherJid));
     }
 
     private async stateChanged(state: 'disconnected' | 'connecting' | 'online') {

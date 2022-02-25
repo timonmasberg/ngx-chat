@@ -8,15 +8,12 @@ import {Room} from '../../../core/room';
 import {Translations} from 'src/lib/core/translations';
 import 'src/manual_typings/@converse';
 import {_converse, converse, ConversePlugin} from '@converse/headless/core';
-import {FileUploadHandler, Form, IqResponseStanza, JidToNumber, RoomUser} from 'src/public-api';
+import {FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from 'src/public-api';
 import {JID} from '@xmpp/jid';
 
 @Injectable()
 export class ConverseXmppChatService implements ChatService, ConversePlugin {
     unreadMessageCountSum$: Observable<number>;
-    register(username: string, password: string, service: string, domain: string): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
     private initializedConverse = false;
 
     readonly message$ = new Subject<Contact>();
@@ -36,26 +33,6 @@ export class ConverseXmppChatService implements ChatService, ConversePlugin {
     chatActions: ChatAction[];
 
     supportsPlugin: { block: boolean; messageState: boolean };
-
-    reloadContacts(): void {
-        throw new Error('Method not implemented.');
-    }
-
-    getContactById(id: string): Contact {
-        throw new Error('Method not implemented.');
-    }
-
-    getOrCreateContactById(id: string): Contact {
-        throw new Error('Method not implemented.');
-    }
-
-    addContact(identifier: string): void {
-        throw new Error('Method not implemented.');
-    }
-
-    removeContact(identifier: string): void {
-        throw new Error('Method not implemented.');
-    }
 
     initialize(): void {
     }
@@ -83,20 +60,22 @@ export class ConverseXmppChatService implements ChatService, ConversePlugin {
         await _converse.api.user.logout();
     }
 
-    sendMessage(recipient: Recipient, body: string): void {
-        throw new Error('Method not implemented.');
+    sendMessage(recipient: Recipient, body: string): Promise<void> {
+        return Promise.resolve();
     }
 
     async loadCompleteHistory(): Promise<void> {
        // await _converse.ChatBox.fetchMessages();
     }
 
-    reconnectSilently(): void {
-        _converse.api.connection.reconnect();
+    reconnectSilently(): Promise<void> {
+        _converse.api.connection.reconnect()
+        return Promise.resolve();
     }
 
-    reconnect(): void {
+    reconnect(): Promise<void> {
         _converse.api.connection.reconnect();
+        return Promise.resolve();
     }
 
     getFileUploadHandler(): FileUploadHandler {
@@ -110,9 +89,7 @@ export class ConverseXmppChatService implements ChatService, ConversePlugin {
     declineRoomInvite(jid: JID) {
     }
 
-    getContactMessageState(bareJid: string) {
-        return null;
-    }
+
 
     joinRoom(jid: JID) {
         return null;
@@ -132,21 +109,12 @@ export class ConverseXmppChatService implements ChatService, ConversePlugin {
         return Promise.resolve([]);
     }
 
-    banUserForRoom(occupantJid: JID, roomJid: JID, reason?: string): Promise<IqResponseStanza> {
-        return Promise.resolve(undefined);
-    }
 
     createRoom(options: RoomCreationOptions): Promise<Room> {
         return Promise.resolve(undefined);
     }
 
-    destroyRoom(roomJid: JID): Promise<IqResponseStanza<"result">> {
-        return Promise.resolve(undefined);
-    }
 
-    kickOccupantFromRoom(nick: string, roomJid: JID, reason?: string): Promise<IqResponseStanza> {
-        return Promise.resolve(undefined);
-    }
 
     leaveRoom(occupantJid: JID, status?: string): Promise<void> {
         return Promise.resolve(undefined);
@@ -160,17 +128,13 @@ export class ConverseXmppChatService implements ChatService, ConversePlugin {
         return Promise.resolve(undefined);
     }
 
-    unbanUserForRoom(occupantJid: JID, roomJid: JID): Promise<IqResponseStanza> {
-        return Promise.resolve(undefined);
-    }
+
 
     unsubscribeRoom(roomJid: string): Promise<void> {
         return Promise.resolve(undefined);
     }
 
-    kickOccupant(nick: string, roomJid: JID, reason?: string): Promise<IqResponseStanza> {
-        return Promise.resolve(undefined);
-    }
+
 
     queryAllRooms(): Promise<RoomSummary[]> {
         return Promise.resolve([]);
@@ -209,6 +173,56 @@ export class ConverseXmppChatService implements ChatService, ConversePlugin {
     }
 
     revokeModeratorStatusForRoom(occupantNick: string, roomJid: JID, reason?: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    fileUploadHandler: FileUploadHandler;
+
+    addContact(identifier: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    getContactById(id: string): Promise<Contact> {
+        return Promise.resolve(undefined);
+    }
+
+    getOrCreateContactById(id: string): Promise<Contact> {
+        return Promise.resolve(undefined);
+    }
+
+    register(user: { username: string; password: string; service: string; domain: string }): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    reloadContacts(): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    removeContact(identifier: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    banUserForRoom(occupantJid: JID, roomJid: JID, reason?: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    destroyRoom(roomJid: JID): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    getContactMessageState(message: Message, contactJid: string): MessageState {
+        return undefined;
+    }
+
+    kickOccupant(nick: string, roomJid: JID, reason?: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    kickOccupantFromRoom(nick: string, roomJid: JID, reason?: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    unbanUserForRoom(occupantJid: JID, roomJid: JID): Promise<void> {
         return Promise.resolve(undefined);
     }
 

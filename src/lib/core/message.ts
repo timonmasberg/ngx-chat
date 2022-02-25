@@ -15,6 +15,16 @@ export enum MessageState {
      * The message has been seen by the recipient
      */
     RECIPIENT_SEEN = 'recipientSeen',
+
+    /**
+     * should ideally not happen
+     */
+    UNKNOWN = 'unknownMessageState',
+
+    /**
+     * No message state support or not requested to be seen
+     */
+    HIDDEN = 'HIDDEN'
 }
 
 export interface Message {

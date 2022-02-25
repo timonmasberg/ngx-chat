@@ -58,7 +58,7 @@ export class RosterPlugin extends AbstractXmppPlugin {
         // (the latter behavior overrides a MUST-level requirement from [XMPP‑CORE] for the purpose of preventing a presence leak).
 
         const itemChild = stanza.getChild('query').getChild('item');
-        const contact = this.chatService.getOrCreateContactById(itemChild.attrs.jid, itemChild.attrs.name || itemChild.attrs.jid);
+        const contact = this.chatService.getOrCreateContactByIdSync(itemChild.attrs.jid, itemChild.attrs.name || itemChild.attrs.jid);
         contact.pendingOut$.next(itemChild.attrs.ask === 'subscribe');
         const subscriptionStatus = itemChild.attrs.subscription || 'none';
 
@@ -93,7 +93,7 @@ export class RosterPlugin extends AbstractXmppPlugin {
     }
 
     private handlePresenceStanza(stanza: PresenceStanza) {
-        const fromAsContact = this.chatService.getOrCreateContactById(stanza.attrs.from);
+        const fromAsContact = this.chatService.getOrCreateContactByIdSync(stanza.attrs.from);
         const isAddressedToMe = this.chatService.chatConnectionService.userJid.bare().equals(parseJid(stanza.attrs.to).bare());
         if (isAddressedToMe) {
             if (!stanza.attrs.type) {
@@ -168,7 +168,7 @@ export class RosterPlugin extends AbstractXmppPlugin {
     }
 
     private sendAcceptPresenceSubscriptionRequest(jid: string) {
-        const contact = this.chatService.getOrCreateContactById(jid);
+        const contact = this.chatService.getOrCreateContactByIdSync(jid);
         contact.pendingIn$.next(false);
         this.chatService.chatConnectionService.send(
             xml('presence', {to: jid, type: 'subscribed', id: this.chatService.chatConnectionService.getNextRequestId()}),
@@ -198,7 +198,7 @@ export class RosterPlugin extends AbstractXmppPlugin {
     private convertToContacts(responseStanza: Stanza): Contact[] {
         return responseStanza.getChild('query').getChildElements()
             .map(rosterElement => {
-                const contact = this.chatService.getOrCreateContactById(rosterElement.attrs.jid,
+                const contact = this.chatService.getOrCreateContactByIdSync(rosterElement.attrs.jid,
                     rosterElement.attrs.name || rosterElement.attrs.jid);
                 contact.subscription$.next(this.parseSubscription(rosterElement.attrs.subscription));
                 contact.pendingOut$.next(rosterElement.attrs.ask === 'subscribe');
@@ -240,7 +240,7 @@ export class RosterPlugin extends AbstractXmppPlugin {
     }
 
     removeRosterContact(jid: string): void {
-        const contact = this.chatService.getContactById(jid);
+        const contact = this.chatService.getContactByIdSync(jid);
         if (contact) {
             contact.subscription$.next(ContactSubscription.none);
             contact.pendingOut$.next(false);

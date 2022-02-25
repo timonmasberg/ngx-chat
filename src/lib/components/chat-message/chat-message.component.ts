@@ -1,12 +1,11 @@
-import { HttpClient } from '@angular/common/http';
-import { Component, Inject, Input, OnInit, Optional } from '@angular/core';
-import { Contact } from '../../core/contact';
-import { Direction, Message, MessageState } from '../../core/message';
-import { extractUrls } from '../../core/utils-links';
-import { MessageStatePlugin, StateDate } from '../../services/adapters/xmpp/plugins/message-state.plugin';
-import { XmppChatAdapter } from '../../services/adapters/xmpp/xmpp-chat-adapter.service';
-import { ChatContactClickHandler, CONTACT_CLICK_HANDLER_TOKEN } from '../../hooks/chat-contact-click-handler';
-import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/chat-service';
+import {HttpClient} from '@angular/common/http';
+import {Component, Inject, Input, OnInit, Optional} from '@angular/core';
+import {Contact} from '../../core/contact';
+import {Direction, Message, MessageState} from '../../core/message';
+import {extractUrls} from '../../core/utils-links';
+import {XmppChatAdapter} from '../../services/adapters/xmpp/xmpp-chat-adapter.service';
+import {ChatContactClickHandler, CONTACT_CLICK_HANDLER_TOKEN} from '../../hooks/chat-contact-click-handler';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
 
 export const MAX_IMAGE_SIZE = 250 * 1024;
 
@@ -84,28 +83,15 @@ export class ChatMessageComponent implements OnInit {
         }
     }
 
-    getMessageState(): MessageState | undefined {
+    getMessageState(bareJid: string): MessageState {
         if (this.showMessageReadState) {
             if (this.message.state) {
                 return this.message.state;
             } else if (this.chatService.supportsPlugin.messageState && this.contact) {
-                const date = this.message.datetime;
-                const states = this.chatService.getContactMessageState(this.contact.jidBare.toString());
-                return this.getStateForDate(date, states);
+               return this.chatService.getContactMessageState(this.message, this.contact.jidBare.toString());
             }
         }
-        return undefined;
-    }
-
-    private getStateForDate(date: Date, states: StateDate): MessageState | undefined {
-        if (date <= states.lastRecipientSeen) {
-            return MessageState.RECIPIENT_SEEN;
-        } else if (date <= states.lastRecipientReceived) {
-            return MessageState.RECIPIENT_RECEIVED;
-        } else if (date <= states.lastSent) {
-            return MessageState.SENT;
-        }
-        return undefined;
+        return MessageState.HIDDEN;
     }
 
     onContactClick() {
