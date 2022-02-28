@@ -83,7 +83,7 @@ export class ChatMessageComponent implements OnInit {
         }
     }
 
-    getMessageState(bareJid: string): MessageState {
+    getMessageState(): MessageState {
         if (this.showMessageReadState) {
             if (this.message.state) {
                 return this.message.state;

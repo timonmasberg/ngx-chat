@@ -3,10 +3,10 @@ import {Affiliation, ChatAction, ChatService, ConnectionStates, Role, RoomCreati
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {Contact} from '../../../core/contact';
 import {Room} from '../../../core/room';
-import {Translations} from 'src/lib/core/translations';
-import {LogInRequest} from 'src/lib/core/log-in-request';
-import {Recipient} from 'src/lib/core/recipient';
-import {FileUploadHandler} from 'src/lib/hooks/file-upload-handler';
+import {Translations} from '../../../core/translations';
+import {LogInRequest} from '../../../core/log-in-request';
+import {Recipient} from '../../../core/recipient';
+import {FileUploadHandler} from '../../../hooks/file-upload-handler';
 import {
     ContactFactoryService,
     Form,

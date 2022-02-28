@@ -27,12 +27,15 @@
     "@angular/platform-browser-dynamic": "^12.2.12",
     "@angular/router": "^12.2.12",
     "@types/ltx": "2.8.2",
+    "@types/strophe.js": "1.2.4",
     "@xmpp/client": "0.13.0",
     "jingle": "3.0.3",
     "js-sha1": "^0.6.0",
     "jxt": "4.0.2",
     "rxjs": "~6.6.0",
-    "strophe.js": "1.4.4"
+    "strophe.js": "1.4.4",
+    "jquery": "^3.6.0",
+    "@converse/headless": "9.0.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~12.2.12",
@@ -56,7 +59,7 @@
     "@types/jquery": "^3.5.13",
     "@types/ltx": "2.8.2",
     "@types/node": "^12.11.1",
-    "@types/strophe": "^1.2.32",
+    "@types/strophe.js": "1.2.4",
     "@xmpp/client": "0.13.0",
     "bytebuffer": "^5.0.1",
     "codelyzer": "^6.0.0",
@@ -89,7 +92,8 @@
     "tslint": "~6.1.0",
     "typescript": "~4.3.5",
     "webpack-bundle-analyzer": "^3.6.1",
-    "zone.js": "^0.11.4"
+    "zone.js": "^0.11.4",
+    "@converse/headless": "9.0.0"
   },
   "keywords": [
     "ngx-chat",

@@ -364,7 +364,7 @@ export interface ChatService {
 
     queryAllRooms(): Promise<RoomSummary[]>;
 
-    loadMostRecentUnloadedMessages(recipient: Recipient);
+    loadMostRecentUnloadedMessages(recipient: Recipient): void;
 
     getContactMessageState(message: Message, contactJid: string): MessageState;
 

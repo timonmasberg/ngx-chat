@@ -49,6 +49,7 @@ import { ContactFactoryService } from './services/contact-factory.service';
 import { LogService } from './services/log.service';
 import { FILE_UPLOAD_HANDLER_TOKEN } from './hooks/file-upload-handler';
 import {ConverseXmppChatService} from './services/adapters/converse-xmpp/converse-xmpp-chat.service';
+import {JSXCXmppChatService} from './services/adapters/jsxc-xmpp/jsxc-xmpp-chat.service';
 
 @NgModule({
     imports: [
@@ -133,6 +134,35 @@ export class NgxChatModule {
                 {
                     provide: CHAT_SERVICE_TOKEN,
                     useClass: ConverseXmppChatService,
+                },
+                {
+                    provide: FILE_UPLOAD_HANDLER_TOKEN,
+                    deps: [CHAT_SERVICE_TOKEN],
+                    useFactory: NgxChatModule.fileUploadHandlerFactory,
+                },
+            ],
+        };
+
+    }
+
+    static forRootJSXC(): ModuleWithProviders<NgxChatModule> {
+
+        return {
+            ngModule: NgxChatModule,
+            providers: [
+                ChatBackgroundNotificationService,
+                ChatListStateService,
+                LogService,
+                ContactFactoryService,
+                XmppClientFactoryService,
+                {
+                    provide: CHAT_SERVICE_TOKEN,
+                    useClass: JSXCXmppChatService,
+                    deps: [
+                        LogService,
+                        ContactFactoryService
+                    ],
+
                 },
                 {
                     provide: FILE_UPLOAD_HANDLER_TOKEN,
