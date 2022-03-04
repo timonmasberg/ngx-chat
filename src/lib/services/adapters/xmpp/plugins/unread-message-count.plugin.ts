@@ -2,7 +2,7 @@ import { xml } from '@xmpp/client';
 import { Element } from 'ltx';
 import { BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription } from 'rxjs';
 import { debounceTime, delay, distinctUntilChanged, map, share } from 'rxjs/operators';
-import { JidToNumber } from 'src/public-api';
+import { JidToNumber } from '../../../chat-service';
 import { Direction, Message } from '../../../../core/message';
 import { Recipient } from '../../../../core/recipient';
 import { findSortedInsertionIndexLast } from '../../../../core/utils-array';

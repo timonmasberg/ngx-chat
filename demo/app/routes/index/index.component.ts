@@ -43,7 +43,7 @@ export class IndexComponent {
         this.password = contactData.password;
         this.username = contactData.username;
 
-        this.chatService.state$.subscribe((state) => this.stateChanged(state));
+        this.chatService.state$.subscribe((state) => IndexComponent.stateChanged(state));
 
         chatBackgroundNotificationService.enable();
 
@@ -51,7 +51,7 @@ export class IndexComponent {
         window.chatService = chatService;
     }
 
-    onLogin() {
+    async onLogin() {
         const logInRequest: LogInRequest = {
             domain: this.domain,
             service: this.service,
@@ -59,11 +59,11 @@ export class IndexComponent {
             username: this.username,
         };
         localStorage.setItem('data', JSON.stringify(logInRequest));
-        this.chatService.logIn(logInRequest);
+      await  this.chatService.logIn(logInRequest);
     }
 
-    onLogout() {
-        this.chatService.logOut();
+    async onLogout() {
+        await this.chatService.logOut();
     }
 
     async onRegister() {
@@ -83,24 +83,24 @@ export class IndexComponent {
         }
     }
 
-    onAddContact() {
-        this.chatService.addContact(this.otherJid);
+   async onAddContact() {
+        await this.chatService.addContact(this.otherJid);
     }
 
-    onRemoveContact() {
-        this.chatService.removeContact(this.otherJid);
+    async onRemoveContact() {
+        await this.chatService.removeContact(this.otherJid);
     }
 
     async onOpenChat() {
         this.chatListStateService.openChat(await this.chatService.getOrCreateContactById(this.otherJid));
     }
 
-    private async stateChanged(state: 'disconnected' | 'connecting' | 'online') {
+    private static async stateChanged(state: 'disconnected' | 'connecting' | 'online') {
         console.log('state changed!', state);
     }
 
-    onReconnect() {
-        this.chatService.reconnect();
+    async onReconnect() {
+        await this.chatService.reconnect();
     }
 
 }

@@ -12,7 +12,7 @@ import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
 import { PUBSUB_EVENT_XMLNS } from './publish-subscribe.plugin';
 import { MessagePlugin } from './message.plugin';
 import { Form, serializeToSubmitForm } from '../../../../core/form';
-import { MUC_SUB_EVENT_TYPE } from 'src/public-api';
+import { MUC_SUB_EVENT_TYPE } from '../../../chat-service';
 
 /**
  * https://xmpp.org/extensions/xep-0313.html

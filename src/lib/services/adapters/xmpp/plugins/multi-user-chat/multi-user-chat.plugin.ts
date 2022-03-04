@@ -30,7 +30,7 @@ import {
 } from '../../../../../core/form';
 import { XmppResponseError } from '../../xmpp-response.error';
 import { mucNs, mucAdminNs, mucOwnerNs, mucRoomConfigFormNs, mucUserNs } from './multi-user-chat-constants';
-import {RoomConfiguration, RoomCreationOptions, RoomSummary} from 'src/public-api';
+import {RoomConfiguration, RoomCreationOptions, RoomSummary} from '../../../../chat-service';
 
 export interface RoomMetadata {
     [key: string]: any;

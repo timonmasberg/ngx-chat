@@ -6,7 +6,6 @@ import {Contact} from '../../../core/contact';
 import {Recipient} from '../../../core/recipient';
 import {Room} from '../../../core/room';
 import {Translations} from '../../../core/translations';
-import {converse} from '@converse/headless';
 import {FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from '../../../../public-api';
 import {JID} from '@xmpp/jid';
 
@@ -39,8 +38,8 @@ export class ConverseXmppChatService implements ChatService {
     async logIn(logInRequest: LogInRequest): Promise<void> {
         if (!this.initializedConverse) {
             const pluginName = 'ngx-chat-plugin';
-            converse.plugins.add(pluginName, this);
-            await converse.initialize(
+            // converse.plugins.add(pluginName, this);
+            /*await converse.initialize(
                 {
                     bosh_service_url: `https://${logInRequest.domain}`,
                     websocket_url: `wss://${logInRequest.domain}/ws`,
@@ -50,7 +49,7 @@ export class ConverseXmppChatService implements ChatService {
                     auto_login: true,
                     whitelisted_plugins: [pluginName],
                     debug: this.enableDebugging
-                });
+                });*/
         }
         this.initializedConverse = true;
     }

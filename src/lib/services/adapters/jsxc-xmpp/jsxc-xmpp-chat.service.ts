@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {Affiliation, ChatAction, ChatService, ConnectionStates, Role, RoomCreationOptions, RoomSummary} from '../../chat-service';
+import {Affiliation, ChatAction, ChatService, ConnectionStates, RoomUser, Role, RoomCreationOptions, RoomSummary, JidToNumber} from '../../chat-service';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {Contact} from '../../../core/contact';
 import {Room} from '../../../core/room';
@@ -7,30 +7,22 @@ import {Translations} from '../../../core/translations';
 import {LogInRequest} from '../../../core/log-in-request';
 import {Recipient} from '../../../core/recipient';
 import {FileUploadHandler} from '../../../hooks/file-upload-handler';
-import {
-    ContactFactoryService,
-    Form,
-    JID,
-    JidToNumber,
-    LogService,
-    Message as ApiMessage,
-    MessageState,
-    parseForm,
-    RoomUser,
-    toLtxElement
-} from 'src/public-api';
+import {Form, parseForm, toLtxElement} from '../../../core/form';
+import {ContactFactoryService} from '../../contact-factory.service';
 import JSXC from './jsxc/src';
 import PluginRepository from './jsxc/src/plugin/PluginRepository';
 import Client from './jsxc/src/Client';
 import BlockingCommandPlugin from './jsxc/src/plugins/BlockingCommandPlugin';
-import {AccountWrapper} from './jsxc/src/api/v1/account-wrapper';
-import {jid} from '@xmpp/jid';
+import {AccountWrapper} from './jsxc/src/api/account-wrapper';
+import {JID, jid} from '@xmpp/jid';
 import Message from './jsxc/src/Message';
 import MessageArchiveManagementPlugin from './jsxc/src/plugins/mam/Plugin';
 import {AFFILIATION, ROLE} from './jsxc/src/MultiUserContact';
 import {MUC_SUB_FEATURE_ID} from '../xmpp/plugins/muc-sub.plugin';
 import {FormFromJSON} from './jsxc/src/connection/Form';
 import {DIRECTION} from './jsxc/src/Message.interface';
+import { LogService } from '../../log.service';
+import { MessageState, Message as ApiMessage } from '../../../core/message';
 
 @Injectable()
 export class JSXCXmppChatService implements ChatService {
@@ -66,7 +58,7 @@ export class JSXCXmppChatService implements ChatService {
     }
 
     async logIn(logInRequest: LogInRequest): Promise<void> {
-        await this.jsxc.startWithCredentials(logInRequest.domain, logInRequest.username, logInRequest.password);
+        await this.jsxc.startWithCredentials(logInRequest.service, logInRequest.username, logInRequest.password);
         this.currentUserAccountWrapper = this.jsxc.getAccount(logInRequest.username);
         this.currentUserPluginRepository = Client.getAccountManager().getAccount(logInRequest.username).getPluginRepository();
     }
@@ -200,7 +192,7 @@ export class JSXCXmppChatService implements ChatService {
     }
 
     async retrieveSubscriptions(): Promise<Map<string, string[]>> {
-        const subscriptions = await this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService().getSubscriptions();
+        const subscriptions = await this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService.getSubscriptions();
 
         const mapped = toLtxElement(subscriptions)
             .getChild('subscriptions', MUC_SUB_FEATURE_ID)
@@ -217,7 +209,7 @@ export class JSXCXmppChatService implements ChatService {
 
     async subscribeRoom(roomJid: string, nodes: string[]): Promise<void> {
         // @TODO fix, probably different xml structure for room subs
-        await Promise.all(nodes.map(node => this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService().subscribe(node, null)));
+        await Promise.all(nodes.map(node => this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService.subscribe(node, null)));
     }
 
     unbanUserForRoom(occupantJid: JID, roomJid: JID): Promise<void> {
@@ -228,7 +220,7 @@ export class JSXCXmppChatService implements ChatService {
 
     async unsubscribeRoom(roomJid: string): Promise<void> {
         // @TODO fix
-        await this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService().unsubscribe(null, this.jsxc.toJid(roomJid));
+        await this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService.unsubscribe(null, this.jsxc.toJid(roomJid));
     }
 
     kickOccupant(nick: string, roomJid: JID, reason?: string): Promise<void> {
@@ -238,8 +230,8 @@ export class JSXCXmppChatService implements ChatService {
     }
 
     async queryAllRooms(): Promise<RoomSummary[]> {
-        const serverJid = this.currentUserAccountWrapper.innerAccount.getConnection().getServerJID();
-        const jsxcRoomSummaries = await this.currentUserAccountWrapper.innerAccount.getConnection().getMUCService().queryAllRooms(serverJid);
+        const serverJid = this.currentUserAccountWrapper.innerAccount.getConnection().getServerJID;
+        const jsxcRoomSummaries = await this.currentUserAccountWrapper.innerAccount.getConnection().getMUCService.queryAllRooms(serverJid);
         return jsxcRoomSummaries.map(summary => {
             return {
                 roomInfo: parseForm(toLtxElement(summary.roomInfo.toXML())),
@@ -303,7 +295,7 @@ export class JSXCXmppChatService implements ChatService {
     }
 
     async addContact(identifier: string): Promise<void> {
-        await this.currentUserAccountWrapper.innerAccount.getConnection().getRosterService().addContact(this.jsxc.toJid(identifier), identifier);
+        await this.currentUserAccountWrapper.innerAccount.getConnection().getRosterService.addContact(this.jsxc.toJid(identifier), identifier);
     }
 
     getContactById(id: string): Promise<Contact> {
@@ -337,7 +329,7 @@ export class JSXCXmppChatService implements ChatService {
     }
 
     async removeContact(identifier: string): Promise<void> {
-        await this.currentUserAccountWrapper.innerAccount.getConnection().getRosterService().removeContact(this.jsxc.toJid(identifier));
+        await this.currentUserAccountWrapper.innerAccount.getConnection().getRosterService.removeContact(this.jsxc.toJid(identifier));
     }
 
     sendMessage(recipient: Recipient, body: string): Promise<void> {
