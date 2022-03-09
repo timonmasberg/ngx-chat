@@ -1,7 +1,7 @@
 import { jid as parseJid } from '@xmpp/client';
 import { JID } from '@xmpp/jid';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { LogService } from '../services/log.service';
+import { LogService } from '../services/adapters/log.service';
 import { dummyAvatarContact } from './contact-avatar';
 import { Message } from './message';
 import { DateMessagesGroup, MessageStore } from './message-store';

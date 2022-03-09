@@ -1,6 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, Input } from '@angular/core';
-import { ChatListStateService } from '../../services/chat-list-state.service';
+import { ChatListStateService } from '../../services/components/chat-list-state.service';
 
 @Component({
     selector: 'ngx-chat-window-list',

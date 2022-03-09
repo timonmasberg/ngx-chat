@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "ng": "ng",
-    "start": "ng build @pazznetwork/ngx-chat && ng serve",
+    "start": "ng build @pazznetwork/ngx-chat && ng serve -c=jsxc",
     "clean": "rimraf out-tsc && rimraf dist && rimraf coverage && rimraf documentation",
     "compile": "tsc -p tsconfig.lib.json --noEmit --noImplicitAny",
     "build-lib": "npm run clean && ng build @pazznetwork/ngx-chat --configuration production && node fix-build-result.js",
@@ -39,7 +39,8 @@
     "emojione": "^4.5.0",
     "getscreenmedia": "^5.1.2",
     "bytebuffer": "^5.0.1",
-    "webrtc-adapter": "8.1.1"
+    "webrtc-adapter": "8.1.1",
+    "otr" : "0.2.16"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~12.2.12",
@@ -97,6 +98,7 @@
     "tslint": "~6.1.0",
     "typescript": "~4.3.5",
     "webpack-bundle-analyzer": "^3.6.1",
+    "otr" : "0.2.16",
     "zone.js": "^0.11.4"
   },
   "keywords": [

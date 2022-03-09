@@ -63,6 +63,8 @@ export interface IConnection {
     changePassword(newPassword: string): Promise<Element>;
 
     close();
+
+    pause();
 }
 
 export interface IMUCService {

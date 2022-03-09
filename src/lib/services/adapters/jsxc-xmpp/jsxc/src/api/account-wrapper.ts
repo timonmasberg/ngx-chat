@@ -6,7 +6,7 @@ import Client from '../Client';
 import JID from '../JID';
 
 
-class ContactWrapper {
+export class ContactWrapper {
     constructor(protected contact: IContact, protected account: Account) {
     }
 
@@ -31,7 +31,7 @@ class ContactWrapper {
     }
 }
 
-class MultiUserContactWrapper extends ContactWrapper {
+export class MultiUserContactWrapper extends ContactWrapper {
     protected contact: MultiUserContact;
 
     public get multiUserContact() {

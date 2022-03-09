@@ -1,6 +1,6 @@
 import AbstractService from './AbstractService';
 import { IJID } from '../../JID.interface';
-import * as NS from '../xmpp/namespace';
+import {NS} from '../xmpp/Namespace';
 
 export default class Disco extends AbstractService {
    public getDiscoInfo(jid: IJID, node?: string): Promise<Element> {

@@ -1,4 +1,4 @@
-import * as NS from '../namespace';
+import {NS} from '../Namespace';
 import AbstractHandler from '../AbstractHandler';
 
 export class DiscoInfoHandler extends AbstractHandler {

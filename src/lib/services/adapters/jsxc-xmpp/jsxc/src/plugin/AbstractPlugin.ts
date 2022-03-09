@@ -50,13 +50,11 @@ export abstract class AbstractPlugin {
    }
 
    constructor(protected minVersion: string, protected maxVersion: string, protected pluginAPI: IPluginAPI) {
-      if (!this.isSupportingClientVersion()) {
-         throw new Error('This plugin doesn\'t support this client version');
-      }
    }
 
    public destroy() {}
 
+   // @Review why?, how is the development of client version incompatible plugin versions planned?
    private isSupportingClientVersion(): boolean {
       const clientVersionNumber = this.getVersionNumber(this.pluginAPI.getVersion());
       const minVersionNumber = this.getVersionNumber(this.minVersion);

@@ -5,7 +5,7 @@ import { Element } from 'ltx';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { LogInRequest } from '../../../core/log-in-request';
 import { IqResponseStanza, Stanza } from '../../../core/stanza';
-import { LogService } from '../../log.service';
+import { LogService } from '../log.service';
 import { XmppResponseError } from './xmpp-response.error';
 import { XmppClientFactoryService } from './xmpp-client-factory.service';
 

@@ -3,7 +3,7 @@ import { Contact } from '../../../../core/contact';
 import { Presence } from '../../../../core/presence';
 import { PresenceStanza, Stanza } from '../../../../core/stanza';
 import { ContactSubscription } from '../../../../core/subscription';
-import { LogService } from '../../../log.service';
+import { LogService } from '../../log.service';
 import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
 

@@ -1,7 +1,7 @@
 import { AbstractPlugin, IMetaData } from '../plugin/AbstractPlugin';
 import PluginAPI from '../plugin/PluginAPI';
 import Translation from '../util/Translation';
-import * as Namespace from '../connection/xmpp/namespace';
+import {NS} from '../connection/xmpp/Namespace';
 import { IContact } from '../Contact.interface';
 import { IMessage } from '../Message.interface';
 import Message from '../Message';
@@ -20,7 +20,7 @@ const LMC = 'urn:xmpp:message-correct:0';
 const MIN_VERSION = '4.3.0';
 const MAX_VERSION = '99.0.0';
 
-Namespace.register('LAST_MSG_CORRECTION', LMC);
+NS.register('LAST_MSG_CORRECTION', LMC);
 
 export default class LastMessageCorrectionPlugin extends AbstractPlugin {
 

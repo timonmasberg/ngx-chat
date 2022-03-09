@@ -18,16 +18,13 @@ import {Observable, Subject} from 'rxjs';
 import {debounceTime, filter, takeUntil} from 'rxjs/operators';
 import {Direction, Message} from '../../core/message';
 import {Recipient} from '../../core/recipient';
-import {BlockPlugin} from '../../services/adapters/xmpp/plugins/block.plugin';
-import {MessageArchivePlugin} from '../../services/adapters/xmpp/plugins/message-archive.plugin';
-import {ChatListStateService} from '../../services/chat-list-state.service';
-import {ChatMessageListRegistryService} from '../../services/chat-message-list-registry.service';
+import {ChatListStateService} from '../../services/components/chat-list-state.service';
+import {ChatMessageListRegistryService} from '../../services/components/chat-message-list-registry.service';
 import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
-import {ContactFactoryService} from '../../services/contact-factory.service';
-import {REPORT_USER_INJECTION_TOKEN, ReportUserService} from '../../services/report-user-service';
+import {ContactFactoryService} from '../../services/adapters/contact-factory.service';
+import {REPORT_USER_INJECTION_TOKEN, ReportUserService} from '../../hooks/report-user-service';
 import {ChatMessageComponent} from '../chat-message/chat-message.component';
 import {RoomMessage} from '../../services/adapters/xmpp/plugins/multi-user-chat/room-message';
-import {MultiUserChatPlugin} from '../../services/adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';
 import {Contact, Invitation} from '../../core/contact';
 
 enum SubscriptionAction {

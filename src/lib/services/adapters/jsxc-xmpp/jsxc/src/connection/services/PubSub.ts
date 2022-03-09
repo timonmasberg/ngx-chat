@@ -1,5 +1,5 @@
 import AbstractService from './AbstractService';
-import * as NS from '../xmpp/namespace';
+import {NS} from '../xmpp/Namespace';
 import {IJID} from '../../JID.interface';
 import Form from '../Form';
 

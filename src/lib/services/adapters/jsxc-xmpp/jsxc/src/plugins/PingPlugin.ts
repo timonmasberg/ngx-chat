@@ -1,7 +1,7 @@
 import { AbstractPlugin, IMetaData } from '../plugin/AbstractPlugin';
 import PluginAPI from '../plugin/PluginAPI';
 import Translation from '../util/Translation';
-import * as Namespace from '../connection/xmpp/namespace';
+import {NS} from '../connection/xmpp/Namespace';
 
 /**
  * XEP-0199: XMPP Ping
@@ -26,7 +26,7 @@ const PING = 'urn:xmpp:ping';
 const MIN_VERSION = '4.0.0';
 const MAX_VERSION = '99.0.0';
 
-Namespace.register('PING', PING);
+NS.register('PING', PING);
 
 export default class PingPlugin extends AbstractPlugin {
    public static getId(): string {

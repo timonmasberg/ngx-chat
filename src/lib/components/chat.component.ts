@@ -33,7 +33,7 @@ export class ChatComponent implements OnInit, OnChanges {
      * If supplied, translations contain an object with the structure of the Translations interface.
      */
     @Input()
-    public set translations(translations: Partial<Translations>) {
+    set translations(translations: Partial<Translations>) {
         const defaultTranslation = defaultTranslations();
         if (translations) {
             this.chatService.translations = {
@@ -51,7 +51,7 @@ export class ChatComponent implements OnInit, OnChanges {
      * If supplied, the contacts input attribute takes an [Observable<Contact[]>]{@link Contact} as source for your roster list.
      */
     @Input()
-    public contacts?: Observable<Contact[]>;
+    contacts?: Observable<Contact[]>;
 
     /**
      * If supplied, the contacts input attribute takes an [Observable<Contact[]>]{@link Contact} as source for your incoming contact
@@ -78,7 +78,7 @@ export class ChatComponent implements OnInit, OnChanges {
      * If supplied, userAvatar$ contains an Observable<string>, which is used as the src attribute of the img for the current user.
      */
     @Input()
-    public userAvatar$?: Observable<string>;
+    userAvatar$?: Observable<string>;
 
     /**
      * 'shown' shows roster list, 'hidden' hides it.

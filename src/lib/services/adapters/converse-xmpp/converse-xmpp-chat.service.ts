@@ -8,6 +8,7 @@ import {Room} from '../../../core/room';
 import {Translations} from '../../../core/translations';
 import {FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from '../../../../public-api';
 import {JID} from '@xmpp/jid';
+import {defaultTranslations} from '../../../core/translations-default';
 
 @Injectable()
 export class ConverseXmppChatService implements ChatService {
@@ -15,9 +16,11 @@ export class ConverseXmppChatService implements ChatService {
     private initializedConverse = false;
 
     readonly message$ = new Subject<Contact>();
+    readonly messageSent$: Subject<Contact> = new Subject();
     readonly groupMessage$ = new Subject<Room>();
     readonly state$ = new BehaviorSubject<ConnectionStates>('disconnected');
     readonly contacts$ = new BehaviorSubject<Contact[]>(null);
+    readonly contactCreated$ = new Subject<Contact>();
     readonly blockedContacts$ = new Subject<Contact[]>();
     readonly notBlockedContacts$ = new Subject<Contact[]>();
     readonly contactsSubscribed$ = new Subject<Contact[]>();
@@ -27,10 +30,10 @@ export class ConverseXmppChatService implements ChatService {
 
     enableDebugging = true;
     userAvatar$: BehaviorSubject<string>;
-    translations: Translations;
     chatActions: ChatAction[];
 
-    supportsPlugin: { block: boolean; messageState: boolean };
+    supportsPlugin = { block: false, messageState: false };
+    translations = defaultTranslations();
 
     initialize(): void {
     }

@@ -3,7 +3,7 @@ import Translation from '../../util/Translation';
 import PersistentMap from '../../util/PersistentMap';
 import JID from '../../JID';
 import { IJID } from '../../JID.interface';
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import Archive from './Archive';
 import PluginAPI from '../../plugin/PluginAPI';
 import {IContact} from '../../Contact.interface';
@@ -15,8 +15,8 @@ const MAX_VERSION = '99.0.0';
 const MAM1 = 'urn:xmpp:mam:1';
 const MAM2 = 'urn:xmpp:mam:2';
 
-Namespace.register('MAM1', MAM1);
-Namespace.register('MAM2', MAM2);
+NS.register('MAM1', MAM1);
+NS.register('MAM2', MAM2);
 
 export default class MessageArchiveManagementPlugin extends AbstractPlugin {
 

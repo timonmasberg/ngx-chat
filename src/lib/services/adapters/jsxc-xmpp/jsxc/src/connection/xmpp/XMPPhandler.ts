@@ -12,7 +12,7 @@ import CapsHandler from './handlers/caps';
 import MultiUserDirectInvitationHandler from './handlers/multiUser/DirectInvitation';
 import MultiUserXMessageHandler from './handlers/multiUser/XMessage';
 import AbstractHandler from './AbstractHandler';
-import * as NS from './namespace';
+import {NS} from './Namespace';
 
 type StropheHandlerOptions = {
    matchBareFromJid?: boolean;

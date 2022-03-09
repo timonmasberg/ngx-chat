@@ -1,4 +1,4 @@
-import * as NS from '../namespace';
+import {NS} from '../Namespace';
 import DiscoInfo from '../../../DiscoInfo';
 import JID from '../../../JID';
 import Account from '../../../Account';

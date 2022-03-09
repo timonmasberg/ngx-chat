@@ -8,150 +8,159 @@ import Log from './util/Log';
 import Utils from './util/Utils';
 
 export default class AccountManager {
-   private accounts: { [id: string]: Account } = {};
+    private accounts: { [id: string]: Account } = {};
 
-   constructor(private storage: IStorage) {}
+    constructor(private storage: IStorage) {
+    }
 
-   public restoreAccounts(): number {
-      const accountIds = this.getAccountIds();
-      const pendingAccountIds = this.getPendingAccountIds();
-      const numberOfAccounts = accountIds.length + pendingAccountIds.length;
+    public restoreAccounts(): number {
+        const accountIds = this.getAccountIds();
+        const pendingAccountIds = this.getPendingAccountIds();
+        const numberOfAccounts = accountIds.length + pendingAccountIds.length;
 
-      accountIds.forEach(this.initAccount);
-      pendingAccountIds.forEach(this.initAccount);
+        accountIds.forEach(this.initAccount);
+        pendingAccountIds.forEach(this.initAccount);
 
-      this.storage.setItem('pendingAccounts', []);
-      this.storage.setItem('accounts', Object.keys(this.accounts));
+        this.storage.setItem('pendingAccounts', []);
+        this.storage.setItem('accounts', Object.keys(this.accounts));
 
-      this.storage.registerHook('accounts', this.accountsHook);
+        this.storage.registerHook('accounts', this.accountsHook);
 
-      return numberOfAccounts;
-   }
+        return numberOfAccounts;
+    }
 
-   private initAccount = (id: string) => {
-      if (this.accounts[id]) {
-         Log.debug('destroy old account with uid ' + id);
+    private initAccount = (id: string) => {
+        if (this.accounts[id]) {
+            Log.debug('destroy old account with uid ' + id);
 
-         this.accounts[id].destroy();
-      }
+            this.accounts[id].destroy();
+        }
 
-      const account = (this.accounts[id] = new Account(id));
+        const account = (this.accounts[id] = new Account(id));
 
-      Client.getPresenceController().registerAccount(account);
-      ClientAvatar.get().registerAccount(account);
+        Client.getPresenceController().registerAccount(account);
+        ClientAvatar.get().registerAccount(account);
 
-      RoleAllocator.get()
-         .waitUntilMaster()
-         .then(() => account.connect())
-         .then(() => {})
-         .catch(msg => {
-            account.connectionDisconnected();
+        RoleAllocator.get()
+            .waitUntilMaster()
+            .then(() => account.connect())
+            .then(() => {
+            })
+            .catch(msg => {
+                account.connectionDisconnected();
 
-            Log.warn(msg);
-         });
-   }
+                Log.warn(msg);
+            });
+    };
 
-   private accountsHook = (newValue, oldValue) => {
-      const diff = Utils.diffArray(newValue, oldValue);
-      const newAccountIds = diff.newValues;
-      const deletedAccountIds = diff.deletedValues;
+    private accountsHook = (newValue, oldValue) => {
+        const diff = Utils.diffArray(newValue, oldValue);
+        const newAccountIds = diff.newValues;
+        const deletedAccountIds = diff.deletedValues;
 
-      newAccountIds.forEach(this.initAccount);
+        newAccountIds.forEach(this.initAccount);
 
-      deletedAccountIds.forEach(id => {
-         const account: Account = this.accounts[id];
+        deletedAccountIds.forEach(id => {
+            const account: Account = this.accounts[id];
 
-         if (account) {
-            delete this.accounts[account.getUid()];
+            if (account) {
+                delete this.accounts[account.getUid()];
 
-            account.remove();
-         }
-      });
-   }
+                account.remove();
+            }
+        });
+    };
 
-   public createAccount(url: string, jid: string, sid: string, rid: string): Promise<Account>;
-   public createAccount(url: string, jid: string, password: string): Promise<Account>;
-   public createAccount() {
-      let account: Account;
+    public async createAccount(url: string, jid: string, ...remainingArgs: string[]): Promise<Account> {
+        if (!url) {
+            throw new Error('We need an url to create an account');
+        }
 
-      if (!arguments[0]) {
-         return Promise.reject('We need an url to create an account');
-      } else if (this.getAccount(arguments[1])) {
-         return Promise.reject('Account with this jid already exists.');
-      } else if (arguments.length === 4) {
-         account = new Account(arguments[0], arguments[1], arguments[2], arguments[3]);
-      } else if (arguments.length === 3) {
-         account = new Account(arguments[0], arguments[1], arguments[2]);
-      } else {
-         return Promise.reject('Wrong number of arguments');
-      }
+        if (this.getAccount(jid)) {
+            throw new Error('Account with this jid already exists.');
+        }
 
-      return Promise.resolve(account);
-   }
+        if (remainingArgs.length === 2) {
+            const [sid, rid] = remainingArgs;
+            return new Account(url, jid, sid, rid);
+        } else if (remainingArgs.length === 1) {
+            const [password] = remainingArgs;
+            return new Account(url, jid, password);
+        } else {
+            throw new Error('Wrong number of arguments');
+        }
+    }
 
-   public getAccount(jid: JID): Account;
-   public getAccount(uid?: string): Account;
-   public getAccount() {
-      let uid;
+    public async createCurrentReconnectingAccount(url: string, jid: string, sid: string, rid: string): Promise<Account> {
+        if (this.getAccount(jid)) {
+            throw new Error('Account with this jid already exists.');
+        }
+        return new Account(url, jid, sid, rid);
+    }
 
-      if (arguments[0] instanceof JID) {
-         uid = arguments[0].bare;
-      } else if (arguments[0]) {
-         uid = arguments[0];
-      } else {
-         uid = Object.keys(this.accounts)[0];
-      }
+    public getAccount(jid: JID): Account;
+    public getAccount(uid?: string): Account;
+    public getAccount() {
+        let uid;
 
-      return this.accounts[uid];
-   }
+        if (arguments[0] instanceof JID) {
+            uid = arguments[0].bare;
+        } else if (arguments[0]) {
+            uid = arguments[0];
+        } else {
+            uid = Object.keys(this.accounts)[0];
+        }
 
-   public getAccounts(): Account[] {
-      // @REVIEW use of Object.values()
-      const accounts = [];
+        return this.accounts[uid];
+    }
 
-      for (const id in this.accounts) {
-         accounts.push(this.accounts[id]);
-      }
+    public getAccounts(): Account[] {
+        // @REVIEW use of Object.values()
+        const accounts = [];
 
-      return accounts;
-   }
+        for (const id in this.accounts) {
+            accounts.push(this.accounts[id]);
+        }
 
-   public addAccount(account: Account) {
-      if (this.getAccount(account.getUid())) {
-         throw new Error('Account with this jid already exists.');
-      }
+        return accounts;
+    }
 
-      this.accounts[account.getUid()] = account;
+    public addAccount(account: Account) {
+        if (this.getAccount(account.getUid())) {
+            throw new Error('Account with this jid already exists.');
+        }
 
-      this.storage.setItem('accounts', Object.keys(this.accounts));
-   }
+        this.accounts[account.getUid()] = account;
 
-   private getAccountIds(): string[] {
-      return this.storage.getItem('accounts') || [];
-   }
+        this.storage.setItem('accounts', Object.keys(this.accounts));
+    }
 
-   public addPendingAccount(account: Account) {
-      const uid = account.getUid();
-      const pendingAccounts = this.getPendingAccountIds();
+    private getAccountIds(): string[] {
+        return this.storage.getItem('accounts') || [];
+    }
 
-      if (pendingAccounts.indexOf(uid) < 0) {
-         pendingAccounts.push(uid);
+    public addPendingAccount(account: Account) {
+        const uid = account.getUid();
+        const pendingAccounts = this.getPendingAccountIds();
 
-         this.storage.setItem('pendingAccounts', pendingAccounts);
-      }
-   }
+        if (pendingAccounts.indexOf(uid) < 0) {
+            pendingAccounts.push(uid);
 
-   private getPendingAccountIds(): string[] {
-      return this.storage.getItem('pendingAccounts') || [];
-   }
+            this.storage.setItem('pendingAccounts', pendingAccounts);
+        }
+    }
 
-   public removeAccount(account: Account) {
-      const ids = Object.keys(this.accounts).filter(id => id !== account.getUid());
+    private getPendingAccountIds(): string[] {
+        return this.storage.getItem('pendingAccounts') || [];
+    }
 
-      this.storage.setItem('accounts', ids);
+    public removeAccount(account: Account) {
+        const ids = Object.keys(this.accounts).filter(id => id !== account.getUid());
 
-      if (ids.length === 0) {
-         Client.getNoticeManager().removeAll();
-      }
-   }
+        this.storage.setItem('accounts', ids);
+
+        if (ids.length === 0) {
+            Client.getNoticeManager().removeAll();
+        }
+    }
 }

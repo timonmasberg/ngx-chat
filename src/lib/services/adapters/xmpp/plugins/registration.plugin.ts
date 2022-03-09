@@ -4,7 +4,7 @@ import { Subject } from 'rxjs';
 import { first, takeUntil } from 'rxjs/operators';
 import { getDomain } from '../../../../core/get-domain';
 import { timeout } from '../../../../core/utils-timeout';
-import { LogService } from '../../../log.service';
+import { LogService } from '../../log.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
 
 /**

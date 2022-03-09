@@ -142,5 +142,9 @@ export default class StorageConnection extends AbstractConnection implements ICo
 
         this.getJingleHandler().onJingle(iqElement);
     }
+
+    pause() {
+        this.connection.pause();
+    }
 }
 // tslint:enable:unified-signatures

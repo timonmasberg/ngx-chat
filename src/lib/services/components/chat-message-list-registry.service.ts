@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { Recipient } from '../core/recipient';
+import { Recipient } from '../../core/recipient';
 
 /**
  * Used to determine if a message component for a given recipient is open.
@@ -11,9 +11,6 @@ export class ChatMessageListRegistryService {
     public openChats$ = new BehaviorSubject<Set<Recipient>>(new Set());
     public chatOpened$ = new Subject<Recipient>();
     private recipientToOpenMessageListCount = new Map<Recipient, number>();
-
-    constructor() {
-    }
 
     isChatOpen(recipient: Recipient) {
         return this.getOrDefault(recipient, 0) > 0;

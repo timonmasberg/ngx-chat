@@ -4,7 +4,7 @@ import PluginAPI from '../../plugin/PluginAPI';
 import Message from '../../Message';
 import Contact from '../../Contact';
 import Translation from '../../util/Translation';
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import ChatStateConnection from './ChatStateConnection';
 import ChatStateMachine from './ChatStateMachine';
 import {ContactType} from '../../Contact.interface';
@@ -25,7 +25,7 @@ export default class ChatStatePlugin extends AbstractPlugin {
    constructor(pluginAPI: PluginAPI) {
       super(MIN_VERSION, MAX_VERSION, pluginAPI);
 
-      Namespace.register('CHATSTATES', 'http://jabber.org/protocol/chatstates');
+      NS.register('CHATSTATES', 'http://jabber.org/protocol/chatstates');
 
       pluginAPI.addPreSendMessageStanzaProcessor(this.preSendMessageStanzaProcessor);
 
@@ -37,7 +37,7 @@ export default class ChatStatePlugin extends AbstractPlugin {
 
       const connection = pluginAPI.getConnection();
 
-      connection.registerHandler(this.onChatState, Namespace.get('CHATSTATES'), 'message', 'chat');
+      connection.registerHandler(this.onChatState, NS.get('CHATSTATES'), 'message', 'chat');
    }
 
    private chatStateConnection: ChatStateConnection;
@@ -82,7 +82,7 @@ export default class ChatStatePlugin extends AbstractPlugin {
       if (message.getType() === Message.MSGTYPE.CHAT) {
          xmlStanza
             .c('active', {
-               xmlns: Namespace.get('CHATSTATES'),
+               xmlns: NS.get('CHATSTATES'),
             })
             .up();
       }
@@ -93,9 +93,9 @@ export default class ChatStatePlugin extends AbstractPlugin {
    private onChatState = (stanza): boolean => {
       stanza = $(stanza);
       const from = new JID(stanza.attr('from'));
-      const composingElement = stanza.find('composing' + Namespace.getFilter('CHATSTATES'));
-      const pausedElement = stanza.find('paused' + Namespace.getFilter('CHATSTATES'));
-      const activeElement = stanza.find('active' + Namespace.getFilter('CHATSTATES'));
+      const composingElement = stanza.find('composing' + NS.getFilter('CHATSTATES'));
+      const pausedElement = stanza.find('paused' + NS.getFilter('CHATSTATES'));
+      const activeElement = stanza.find('active' + NS.getFilter('CHATSTATES'));
 
       if (composingElement.length > 0) {
          this.onComposing(from);

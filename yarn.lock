@@ -7897,6 +7897,11 @@ mute-stream@0.0.8:
   resolved "https://registry.npmjs.org/mute-stream/-/mute-stream-0.0.8.tgz"
   integrity sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==
 
+nan@0.8.x:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/nan/-/nan-0.8.0.tgz#022a8fa5e9fe8420964ac1fb3dc94e17f449f5fd"
+  integrity sha1-AiqPpen+hCCWSsH7PclOF/RJ9f0=
+
 nan@^2.12.1:
   version "2.15.0"
   resolved "https://registry.npmjs.org/nan/-/nan-2.15.0.tgz"
@@ -8385,6 +8390,13 @@ os-tmpdir@~1.0.2:
   version "1.0.2"
   resolved "https://registry.npmjs.org/os-tmpdir/-/os-tmpdir-1.0.2.tgz"
   integrity sha1-u+Z0BseaqFxc/sdm/lc0VV36EnQ=
+
+otr@0.2.16:
+  version "0.2.16"
+  resolved "https://registry.yarnpkg.com/otr/-/otr-0.2.16.tgz#04a75344f522dfcb0778c5438c0f55e69d3e8bc1"
+  integrity sha1-BKdTRPUi38sHeMVDjA9V5p0+i8E=
+  optionalDependencies:
+    webworker-threads "~0.4.13"
 
 p-defer@^1.0.0:
   version "1.0.0"
@@ -11591,6 +11603,13 @@ websocket-extensions@>=0.1.1:
   version "0.1.4"
   resolved "https://registry.npmjs.org/websocket-extensions/-/websocket-extensions-0.1.4.tgz"
   integrity sha512-OqedPIGOfsDlo31UNwYbCFMSaO9m9G/0faIHj5/dZFDMFqPTcx6UwqyOy3COEaEOg/9VsGIpdqn62W5KhoKSpg==
+
+webworker-threads@~0.4.13:
+  version "0.4.13"
+  resolved "https://registry.yarnpkg.com/webworker-threads/-/webworker-threads-0.4.13.tgz#d73bdfd0021bf70931cb85c24cc3f4cefbeb1f98"
+  integrity sha1-1zvf0AIb9wkxy4XCTMP0zvvrH5g=
+  dependencies:
+    nan "0.8.x"
 
 whatwg-url@^5.0.0:
   version "5.0.0"

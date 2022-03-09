@@ -41,12 +41,12 @@ import { UnreadMessageCountPlugin } from './services/adapters/xmpp/plugins/unrea
 import { XmppChatAdapter } from './services/adapters/xmpp/xmpp-chat-adapter.service';
 import { XmppChatConnectionService } from './services/adapters/xmpp/xmpp-chat-connection.service';
 import { XmppClientFactoryService } from './services/adapters/xmpp/xmpp-client-factory.service';
-import { ChatBackgroundNotificationService } from './services/chat-background-notification.service';
-import { ChatListStateService } from './services/chat-list-state.service';
-import { ChatMessageListRegistryService } from './services/chat-message-list-registry.service';
+import { ChatBackgroundNotificationService } from './services/components/chat-background-notification.service';
+import { ChatListStateService } from './services/components/chat-list-state.service';
+import { ChatMessageListRegistryService } from './services/components/chat-message-list-registry.service';
 import { CHAT_SERVICE_TOKEN, ChatService } from './services/chat-service';
-import { ContactFactoryService } from './services/contact-factory.service';
-import { LogService } from './services/log.service';
+import { ContactFactoryService } from './services/adapters/contact-factory.service';
+import { LogService } from './services/adapters/log.service';
 import { FILE_UPLOAD_HANDLER_TOKEN } from './hooks/file-upload-handler';
 import {ConverseXmppChatService} from './services/adapters/converse-xmpp/converse-xmpp-chat.service';
 import {JSXCXmppChatService} from './services/adapters/jsxc-xmpp/jsxc-xmpp-chat.service';
@@ -129,8 +129,8 @@ export class NgxChatModule {
             providers: [
                 ChatBackgroundNotificationService,
                 ChatListStateService,
+                ChatMessageListRegistryService,
                 LogService,
-                XmppClientFactoryService,
                 {
                     provide: CHAT_SERVICE_TOKEN,
                     useClass: ConverseXmppChatService,
@@ -146,15 +146,14 @@ export class NgxChatModule {
     }
 
     static forRootJSXC(): ModuleWithProviders<NgxChatModule> {
-
         return {
             ngModule: NgxChatModule,
             providers: [
                 ChatBackgroundNotificationService,
                 ChatListStateService,
+                ChatMessageListRegistryService,
                 LogService,
                 ContactFactoryService,
-                XmppClientFactoryService,
                 {
                     provide: CHAT_SERVICE_TOKEN,
                     useClass: JSXCXmppChatService,

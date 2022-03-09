@@ -1,5 +1,5 @@
 import AbstractService from './AbstractService';
-import * as NS from '../../../connection/xmpp/namespace';
+import {NS} from '../../../connection/xmpp/Namespace';
 import RoomBookmark from '../RoomBookmark';
 import {IConnection} from '../../../connection/Connection.interface';
 import Log from '../../../util/Log';

@@ -6,7 +6,7 @@ import UUID from '../../util/UUID';
 import Utils from '../../util/Utils';
 import Log from '../../util/Log';
 import Translation from '../../util/Translation';
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import {IJID} from '../../JID.interface';
 import {IMessage, MessageMark} from '../../Message.interface';
 import MultiUserContact from '../../MultiUserContact';
@@ -124,7 +124,7 @@ export default class Archive {
         const stamp = delayElement.length > 0 ? new Date(delayElement.attr('stamp')) : new Date();
 
         const plaintextBody = Utils.removeHTML(messageElement.find('> body').text());
-        const htmlBody = messageElement.find('html body' + Namespace.getFilter('XHTML'));
+        const htmlBody = messageElement.find('html body' + NS.getFilter('XHTML'));
 
         if (!plaintextBody) {
             return null;

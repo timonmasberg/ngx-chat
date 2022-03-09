@@ -1,7 +1,7 @@
 import { xml } from '@xmpp/client';
 import { BehaviorSubject, of } from 'rxjs';
 import { catchError, first, mergeMap, map, timeout } from 'rxjs/operators';
-import { LogService } from '../../../log.service';
+import { LogService } from '../../log.service';
 import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
 import { ServiceDiscoveryPlugin } from './service-discovery.plugin';

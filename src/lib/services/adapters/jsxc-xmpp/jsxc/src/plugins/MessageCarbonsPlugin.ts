@@ -2,7 +2,7 @@ import * as CONST from '../CONST';
 import { AbstractPlugin, IMetaData } from '../plugin/AbstractPlugin';
 import PluginAPI from '../plugin/PluginAPI';
 import Message from '../Message';
-import * as Namespace from '../connection/xmpp/namespace';
+import {NS} from '../connection/xmpp/Namespace';
 import Translation from '../util/Translation';
 
 const MIN_VERSION = '4.0.0';
@@ -33,7 +33,7 @@ export default class CarbonsPlugin extends AbstractPlugin {
    constructor(pluginAPI: PluginAPI) {
       super(MIN_VERSION, MAX_VERSION, pluginAPI);
 
-      Namespace.register('CARBONS', 'urn:xmpp:carbons:2');
+      NS.register('CARBONS', 'urn:xmpp:carbons:2');
 
       pluginAPI.addPreSendMessageStanzaProcessor(this.preSendMessageStanzaProcessor);
 
@@ -76,7 +76,7 @@ export default class CarbonsPlugin extends AbstractPlugin {
        const iq = $iq({
            type: 'set',
        }).c('enable', {
-           xmlns: Namespace.get('CARBONS'),
+           xmlns: NS.get('CARBONS'),
        });
 
        return this.pluginAPI
@@ -93,7 +93,7 @@ export default class CarbonsPlugin extends AbstractPlugin {
    //    let iq = $iq({
    //       type: 'set'
    //    }).c('disable', {
-   //       xmlns: Namespace.get('CARBONS')
+   //       xmlns: NS.get('CARBONS')
    //    });
 
    //    return this.pluginAPI.sendIQ(iq).then(() => {

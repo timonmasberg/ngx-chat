@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { testLogService } from '../../../test/log-service';
 import { MockClientFactory } from '../../../test/xmppClientMock';
-import { ContactFactoryService } from '../../contact-factory.service';
-import { LogService } from '../../log.service';
+import { ContactFactoryService } from '../contact-factory.service';
+import { LogService } from '../log.service';
 import { XmppChatConnectionService } from './xmpp-chat-connection.service';
 import { XmppClientFactoryService } from './xmpp-client-factory.service';
 

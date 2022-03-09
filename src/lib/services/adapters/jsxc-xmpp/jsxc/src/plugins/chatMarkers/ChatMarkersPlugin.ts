@@ -1,4 +1,4 @@
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import { ContactSubscription } from '../../Contact.interface';
 import JID from '../../JID';
 import { IJID } from '../../JID.interface';
@@ -45,9 +45,9 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
    constructor(pluginAPI: PluginAPI) {
       super(MIN_VERSION, MAX_VERSION, pluginAPI);
 
-      Namespace.register(CHATMARKERS, 'urn:xmpp:chat-markers:0');
+      NS.register(CHATMARKERS, 'urn:xmpp:chat-markers:0');
 
-      this.pluginAPI.addFeature(Namespace.get(CHATMARKERS));
+      this.pluginAPI.addFeature(NS.get(CHATMARKERS));
 
       this.pluginAPI.addPreSendMessageStanzaProcessor(this.preSendMessageStanzaProcessor);
 
@@ -65,7 +65,7 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
       const repository = this.pluginAPI.getDiscoInfoRepository();
 
       try {
-         return repository.hasFeature(jid, [Namespace.get(CHATMARKERS)]);
+         return repository.hasFeature(jid, [NS.get(CHATMARKERS)]);
       } catch (err) {
          return false;
       }
@@ -86,7 +86,7 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
    private addMarkable(xmlStanza: Strophe.Builder) {
       xmlStanza
          .c(MARKABLE, {
-            xmlns: Namespace.get(CHATMARKERS),
+            xmlns: NS.get(CHATMARKERS),
          })
          .up();
    }
@@ -101,7 +101,7 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
             type: 'chat',
          })
             .c(RECEIVED, {
-               xmlns: Namespace.get(CHATMARKERS),
+               xmlns: NS.get(CHATMARKERS),
                id: lastReceivedMsgId,
             })
             .up()
@@ -121,7 +121,7 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
             type: 'chat',
          })
             .c(DISPLAYED, {
-               xmlns: Namespace.get(CHATMARKERS),
+               xmlns: NS.get(CHATMARKERS),
                id: lastDisplayedMsgId,
             })
             .up()
@@ -138,7 +138,7 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
    //    this.pluginAPI.send($msg({
    //       to: to.full
    //    }).c(ACKNOWLEDGED, {
-   //       xmlns: Namespace.get(CHATMARKERS),
+   //       xmlns: NS.get(CHATMARKERS),
    //       id: lastAcknowledgedMsgId
    //    }).up().c('store', {
    //    xmlns: 'urn:xmpp:hints'
@@ -161,19 +161,19 @@ export default class ChatMarkersPlugin extends AbstractPlugin {
 
    private onChatMarkersMessage = (stanza: string) => {
       const stanzaElement = $(stanza);
-      const markerElement = stanzaElement.find(Namespace.getFilter(CHATMARKERS));
+      const markerElement = stanzaElement.find(NS.getFilter(CHATMARKERS));
 
       if (markerElement.length === 0) {
          return true;
       }
 
       const mamResultElement =
-         stanzaElement.find(Namespace.getFilter('MAM2', 'result')) ||
-         stanzaElement.find(Namespace.getFilter('MAM1', 'result'));
+         stanzaElement.find(NS.getFilter('MAM2', 'result')) ||
+         stanzaElement.find(NS.getFilter('MAM1', 'result'));
       const isMam = mamResultElement.length > 0;
 
-      const carbonReceivedElement = stanzaElement.find(Namespace.getFilter('CARBONS', 'received'));
-      const carbonSentElement = stanzaElement.find(Namespace.getFilter('CARBONS', 'sent'));
+      const carbonReceivedElement = stanzaElement.find(NS.getFilter('CARBONS', 'received'));
+      const carbonSentElement = stanzaElement.find(NS.getFilter('CARBONS', 'sent'));
       const isCarbon = carbonReceivedElement.length > 0 || carbonSentElement.length > 0;
 
       if (isCarbon && stanzaElement.attr('from') !== this.pluginAPI.getConnection().getJID.bare) {

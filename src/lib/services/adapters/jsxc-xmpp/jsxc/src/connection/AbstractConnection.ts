@@ -1,6 +1,6 @@
 import Message from '../Message';
 import JID from '../JID';
-import * as NS from './xmpp/namespace';
+import {NS} from './xmpp/Namespace';
 import Log from '../util/Log';
 import Account from '../Account';
 import PEPService from './services/PEP';
@@ -362,6 +362,10 @@ abstract class AbstractConnection implements IConnection {
             node: this.node,
             ver: this.account.getDiscoInfo().getCapsVersion(),
         };
+    }
+
+    pause() {
+        this.connection.pause();
     }
 
     close() {

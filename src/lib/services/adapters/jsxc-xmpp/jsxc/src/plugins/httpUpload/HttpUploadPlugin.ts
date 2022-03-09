@@ -3,7 +3,7 @@ import Message from '../../Message';
 import { AbstractPlugin, IMetaData } from '../../plugin/AbstractPlugin';
 import PluginAPI from '../../plugin/PluginAPI';
 import JID from '../../JID';
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import Attachment from '../../Attachment';
 import HttpUploadService from './HttpUploadService';
 import { IConnection } from '../../connection/Connection.interface';
@@ -22,7 +22,7 @@ export default class HttpUploadPlugin extends AbstractPlugin {
    constructor(pluginAPI: PluginAPI) {
       super(MIN_VERSION, MAX_VERSION, pluginAPI);
 
-      Namespace.register('HTTPUPLOAD', 'urn:xmpp:http:upload:0');
+      NS.register('HTTPUPLOAD', 'urn:xmpp:http:upload:0');
 
       pluginAPI.addPreSendMessageProcessor(this.preSendMessageProcessor, 20);
 
@@ -137,11 +137,11 @@ export default class HttpUploadPlugin extends AbstractPlugin {
 
                   // @TODO cache
                   const promise = discoInfoRepository.requestDiscoInfo(jid).then(discoInfo => {
-                     const hasFeature = discoInfo.hasFeature(Namespace.get('HTTPUPLOAD'));
+                     const hasFeature = discoInfo.hasFeature(NS.get('HTTPUPLOAD'));
 
                      if (hasFeature) {
                         let maxFileSize = 0;
-                        const form = discoInfo.getFormByType(Namespace.get('HTTPUPLOAD'));
+                        const form = discoInfo.getFormByType(NS.get('HTTPUPLOAD'));
 
                         if (form) {
                            const values = form.getValues('max-file-size') || [];

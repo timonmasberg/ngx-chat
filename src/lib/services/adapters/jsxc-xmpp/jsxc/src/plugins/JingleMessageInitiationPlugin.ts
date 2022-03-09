@@ -1,6 +1,6 @@
 import { AbstractPlugin, IMetaData } from '../plugin/AbstractPlugin';
 import PluginAPI from '../plugin/PluginAPI';
-import * as Namespace from '../connection/xmpp/namespace';
+import {NS} from '../connection/xmpp/Namespace';
 import {Call} from '../Call';
 import Translation from '../util/Translation';
 import {IContact} from '../Contact.interface';
@@ -24,7 +24,7 @@ type Actions = 'propose' | 'retract' | 'accept' | 'reject' | 'proceed';
 const MIN_VERSION = '4.0.0';
 const MAX_VERSION = '99.0.0';
 
-Namespace.register('JINGLE_MESSAGE_INITIATION', JMI);
+NS.register('JINGLE_MESSAGE_INITIATION', JMI);
 
 export default class JingleMessageInitiationPlugin extends AbstractPlugin {
 

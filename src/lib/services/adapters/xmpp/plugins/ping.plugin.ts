@@ -2,7 +2,7 @@ import { NgZone } from '@angular/core';
 import { xml } from '@xmpp/client';
 import { filter } from 'rxjs/operators';
 import { timeout } from '../../../../core/utils-timeout';
-import { LogService } from '../../../log.service';
+import { LogService } from '../../log.service';
 import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
 import { IqResponseStanza } from '../../../../core/stanza';

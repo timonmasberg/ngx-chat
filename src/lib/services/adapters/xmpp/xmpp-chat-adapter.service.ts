@@ -22,8 +22,8 @@ import {
     RoomSummary,
     RoomUser
 } from '../../chat-service';
-import {ContactFactoryService} from '../../contact-factory.service';
-import {LogService} from '../../log.service';
+import {ContactFactoryService} from '../contact-factory.service';
+import {LogService} from '../log.service';
 import {MessageArchivePlugin} from './plugins/message-archive.plugin';
 import {MessagePlugin} from './plugins/message.plugin';
 import {MultiUserChatPlugin} from './plugins/multi-user-chat/multi-user-chat.plugin';

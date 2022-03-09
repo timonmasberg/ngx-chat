@@ -23,8 +23,9 @@ import Log from './util/Log';
 import CommandRepository from './CommandRepository';
 import CallManager from './CallManager';
 import MenuChatMessage from './MenuChatMessage';
+import {Strophe} from 'strophe.js';
 
-type ConnectionCallback = (status: number, condition?: string) => void;
+type ConnectionCallback = (status: Strophe.Status, condition?: string) => void;
 
 export default class Account {
     private storage: Storage;
@@ -129,48 +130,46 @@ export default class Account {
         this.options.set(key, value);
     }
 
-    public connect = (pause: boolean = false): Promise<void> => {
+    public connect = async (pause: boolean = false): Promise<void> => {
         const targetPresence = Client.getPresenceController().getTargetPresence();
 
         if (targetPresence === Presence.offline) {
             Client.getPresenceController().setTargetPresence(Presence.online);
         }
 
-        return this.connector
-            .connect()
-            .then(async ([status, connection]) => {
-                this.connection = connection;
+        const [status, connection] = await this.connector.connect();
+        try {
+            this.connection = connection;
 
-                if (pause) {
-                    connection.pause();
-                }
+            if (pause) {
+                connection.pause();
+            }
 
-                const storage = this.getSessionStorage();
+            const storage = this.getSessionStorage();
 
-                if (!storage.getItem('connection', 'created')) {
-                    storage.setItem('connection', 'created', new Date());
-                }
+            if (!storage.getItem('connection', 'created')) {
+                storage.setItem('connection', 'created', new Date());
+            }
 
-                if (!storage.getItem('options', 'loaded')) {
-                    const jid = this.connector.getJID();
-                    await Options.load(jid.bare, this.connector.getPassword(), jid);
-                    this.connector.clearPassword();
+            if (!storage.getItem('options', 'loaded')) {
+                const jid = this.connector.getJID();
+                await Options.load(jid.bare, this.connector.getPassword(), jid);
+                this.connector.clearPassword();
 
-                    storage.setItem('options', 'loaded', true);
-                }
+                storage.setItem('options', 'loaded', true);
+            }
 
-                if (!pause) {
-                    this.initConnection(status);
-                }
-            })
-            .catch(err => {
-                if (Client.getAccountManager().getAccounts().length <= 1) {
-                    Client.getPresenceController().setTargetPresence(Presence.offline);
-                }
+            if (!pause) {
+                await this.initConnection(status);
+            }
+        } catch (err) {
+            if (Client.getAccountManager().getAccounts().length <= 1) {
+                Client.getPresenceController().setTargetPresence(Presence.offline);
+            }
 
-                throw err;
-            });
-    }
+            throw err;
+        }
+    };
 
     private async initConnection(status): Promise<void> {
         const storage = this.getSessionStorage();
@@ -182,42 +181,42 @@ export default class Account {
         await this.getContactManager().loadContacts();
 
         const targetPresence = Client.getPresenceController().getTargetPresence();
-        this.getConnection().sendPresence(targetPresence);
+        await this.getConnection().sendPresence(targetPresence);
 
         storage.setItem('connection', 'inited', true);
     }
 
     public triggerPresenceHook = (contact: IContact, presence, oldPresence) => {
         this.hookRepository.trigger('presence', contact, presence, oldPresence);
-    }
+    };
 
     public registerPresenceHook = func => {
         this.hookRepository.registerHook('presence', func);
-    }
+    };
 
     public triggerConnectionHook = (status: number, condition?: string) => {
         this.hookRepository.trigger('connection', status, condition);
-    }
+    };
 
     public registerConnectionHook = (func: ConnectionCallback) => {
         this.hookRepository.registerHook('connection', func);
-    }
+    };
 
     public triggerChatWindowInitializedHook = (chatRootElement: Element, contact: Contact) => {
         this.hookRepository.trigger('chatWindowInitialized', chatRootElement, contact);
-    }
+    };
 
     public registerChatWindowInitializedHook = (func: (chatRootElement?: Element, contact?: Contact) => void) => {
         this.hookRepository.registerHook('chatWindowInitialized', func);
-    }
+    };
 
     public triggerChatWindowClearedHook = (chatRootElement: Element, contact: Contact) => {
         this.hookRepository.trigger('chatWindowCleared', chatRootElement, contact);
-    }
+    };
 
     public registerChatWindowClearedHook = (func: (chatRootElement?: Element, contact?: Contact) => void) => {
         this.hookRepository.registerHook('chatWindowCleared', func);
-    }
+    };
 
     public getContactManager(): ContactManager {
         if (!this.contactManager) {

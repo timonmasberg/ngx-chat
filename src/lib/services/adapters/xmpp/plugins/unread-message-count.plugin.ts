@@ -6,7 +6,7 @@ import { JidToNumber } from '../../../chat-service';
 import { Direction, Message } from '../../../../core/message';
 import { Recipient } from '../../../../core/recipient';
 import { findSortedInsertionIndexLast } from '../../../../core/utils-array';
-import { ChatMessageListRegistryService } from '../../../chat-message-list-registry.service';
+import { ChatMessageListRegistryService } from '../../../components/chat-message-list-registry.service';
 import { AbstractStanzaBuilder } from '../abstract-stanza-builder';
 import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';

@@ -2,8 +2,11 @@
 // `ng build ---prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
-export const environment = {
-  production: false
+import {ChatAdapter, DemoEnvironment} from './environment.interface';
+
+export const environment: DemoEnvironment = {
+  production: false,
+  chatAdapter: ChatAdapter.pazz
 };
 
 /*

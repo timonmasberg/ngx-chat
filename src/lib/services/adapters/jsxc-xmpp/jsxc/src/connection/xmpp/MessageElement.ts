@@ -1,4 +1,4 @@
-import * as NS from './namespace';
+import {NS}from './Namespace';
 import JID from '../../JID';
 import Message from '../../Message';
 import Utils from '../../util/Utils';

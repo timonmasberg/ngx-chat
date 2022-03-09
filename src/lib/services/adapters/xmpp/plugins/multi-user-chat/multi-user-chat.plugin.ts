@@ -4,7 +4,7 @@ import { Element } from 'ltx';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Direction } from '../../../../../core/message';
 import { IqResponseStanza, Stanza } from '../../../../../core/stanza';
-import { LogService } from '../../../../log.service';
+import { LogService } from '../../../log.service';
 import { AbstractStanzaBuilder } from '../../abstract-stanza-builder';
 import { StanzaBuilder } from '../../stanza-builder';
 import { XmppChatAdapter } from '../../xmpp-chat-adapter.service';

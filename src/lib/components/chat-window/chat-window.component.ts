@@ -3,7 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Direction, Message } from '../../core/message';
 import { ChatContactClickHandler, CONTACT_CLICK_HANDLER_TOKEN } from '../../hooks/chat-contact-click-handler';
-import { ChatListStateService, ChatWindowState } from '../../services/chat-list-state.service';
+import { ChatListStateService, ChatWindowState } from '../../services/components/chat-list-state.service';
 import { CHAT_SERVICE_TOKEN, ChatService, ChatAction } from '../../services/chat-service';
 import { ChatMessageInputComponent } from '../chat-message-input/chat-message-input.component';
 import { ChatMessageListComponent } from '../chat-message-list/chat-message-list.component';

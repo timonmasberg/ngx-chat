@@ -1,4 +1,4 @@
-import {NgModule} from '@angular/core';
+import {ModuleWithProviders, NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {BrowserModule} from '@angular/platform-browser';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
@@ -11,6 +11,12 @@ import {IndexComponent} from './routes/index/index.component';
 import {UiComponent} from './routes/ui/ui.component';
 import {SendStanzaComponent} from './send-stanza/send-stanza.component';
 import {MucComponent} from './routes/muc/muc.component';
+import {ChatAdapter} from '../environments/environment.interface';
+
+const adapterMap = new Map<ChatAdapter, ModuleWithProviders<NgxChatModule>>([
+    [ChatAdapter.jsxc, NgxChatModule.forRootJSXC()],
+    [ChatAdapter.converse, NgxChatModule.forRootConverse()],
+    [ChatAdapter.pazz, NgxChatModule.forRoot()]]);
 
 @NgModule({
     declarations: [
@@ -25,7 +31,7 @@ import {MucComponent} from './routes/muc/muc.component';
     imports: [
         BrowserModule,
         BrowserAnimationsModule,
-        ngxChatWithConfiguredAdapter(),
+        NgxChatModule.forRootJSXC(),
         FormsModule,
         AppRoutingModule,
     ],
@@ -33,16 +39,4 @@ import {MucComponent} from './routes/muc/muc.component';
     bootstrap: [AppComponent]
 })
 export class AppModule {
-}
-
-function ngxChatWithConfiguredAdapter() {
-    switch (process.env.NGX_CHAT_ADAPTER) {
-        case 'JSXC':
-            return NgxChatModule.forRootJSXC();
-        case 'Converse':
-            return NgxChatModule.forRootConverse();
-        default:
-            // Own Pazz implementation
-            return NgxChatModule.forRoot();
-    }
 }

@@ -11,10 +11,11 @@ import Translation from '../util/Translation';
 import Form from '../connection/Form';
 import {Presence} from '../connection/AbstractConnection';
 import Account from '../Account';
-import { register } from './register';
+import {register} from './register';
 import JID from '../JID';
+import {Strophe} from 'strophe.js';
 
-const __VERSION__ = '????';
+const __VERSION__ = '0.0.1';
 
 // noinspection JSUnusedGlobalSymbols
 export default class JSXC {
@@ -50,8 +51,11 @@ export default class JSXC {
         });
     }
 
-    async startWithCredentials(connectionServiceUrl: string, jid: string, password: string) {
+    async startWithCredentials(connectionServiceUrl: string, jid: string, password: string, connectionHook?: (status: Strophe.Status, condition?: string) => void) {
         const account = await Client.getAccountManager().createAccount(connectionServiceUrl, jid, password.toString());
+        if (connectionHook){
+            account.registerConnectionHook(connectionHook);
+        }
 
         return this.connect(account);
     }
@@ -61,32 +65,31 @@ export default class JSXC {
             return Promise.reject(new InvalidParameterError('We need a Jabber ID with resource.'));
         }
 
-        const account = await Client.getAccountManager().createAccount(url, jid, sid.toString(), rid.toString());
+        const account = await Client.getAccountManager().createCurrentReconnectingAccount(url, jid, sid, rid);
 
         return this.connect(account);
     }
 
-    connect(account: Account): Promise<void> {
+    async connect(account: Account): Promise<void> {
         const accountManager = Client.getAccountManager();
 
-        return account
-            .connect(true)
-            .then(() => {
-                accountManager.addAccount(account);
-            })
-            .catch(err => {
-                accountManager.removeAccount(account);
+        await account.connect(true);
 
-                if (err instanceof BaseError) {
-                    Log.warn('Instance of BaseErrors', err.toString());
+        try {
+            accountManager.addAccount(account);
+        } catch (err) {
+            accountManager.removeAccount(account);
 
-                    throw err;
-                }
+            if (err instanceof BaseError) {
+                Log.warn('Instance of BaseErrors', err.toString());
 
-                Log.warn('Unknown error:', err);
+                throw err;
+            }
 
-                throw new Error('Unknown error');
-            });
+            Log.warn('Unknown error:', err);
+
+            throw new Error('Unknown error');
+        }
     }
 
 
@@ -207,7 +210,7 @@ export default class JSXC {
         return count;
     }
 
-    toJid(jidBare: string){
+    toJid(jidBare: string) {
         return new JID(jidBare);
     }
 

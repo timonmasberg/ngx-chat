@@ -4,7 +4,7 @@ import { Subject } from 'rxjs';
 import { debounceTime, filter } from 'rxjs/operators';
 import { Recipient } from '../../../../core/recipient';
 import { Stanza } from '../../../../core/stanza';
-import { LogService } from '../../../log.service';
+import { LogService } from '../../log.service';
 import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
 import { MultiUserChatPlugin } from './multi-user-chat/multi-user-chat.plugin';

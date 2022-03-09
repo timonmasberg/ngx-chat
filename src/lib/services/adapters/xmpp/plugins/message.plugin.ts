@@ -2,7 +2,7 @@ import { jid as parseJid, xml } from '@xmpp/client';
 import { Contact, Invitation } from '../../../../core/contact';
 import { Direction, Message } from '../../../../core/message';
 import { MessageWithBodyStanza, Stanza } from '../../../../core/stanza';
-import { LogService } from '../../../log.service';
+import { LogService } from '../../log.service';
 import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
 import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
 import { mucUserNs } from './multi-user-chat/multi-user-chat-constants';

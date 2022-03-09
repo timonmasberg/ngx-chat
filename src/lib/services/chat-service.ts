@@ -1,5 +1,5 @@
 import {InjectionToken} from '@angular/core';
-import {BehaviorSubject, Observable} from 'rxjs';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {Room} from '../core/room';
 import {Contact} from '../core/contact';
 import {LogInRequest} from '../core/log-in-request';
@@ -170,6 +170,11 @@ export interface ChatService {
     message$: Observable<Contact>;
 
     /**
+     * Will emit the corresponding contact to which a message was sent.
+     */
+    messageSent$: Observable<Contact>;
+
+    /**
      * Will emit the corresponding room when a new message arrive.
      */
     groupMessage$: Observable<Room>;
@@ -186,6 +191,11 @@ export interface ChatService {
      * This does not represent your roster list.
      */
     contacts$: BehaviorSubject<Contact[]>;
+
+    /**
+     * Emits when a new contact was added to the roster / contact list
+     */
+    contactCreated$: Observable<Contact>;
 
     rooms$: Observable<Room[]>;
 

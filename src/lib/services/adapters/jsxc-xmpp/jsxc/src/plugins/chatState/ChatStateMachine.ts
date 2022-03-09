@@ -2,7 +2,7 @@ import ChatStatePlugin from './ChatStatePlugin';
 import ChatStateConnection from './ChatStateConnection';
 import { STATE } from './State';
 import Contact from '../../Contact';
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import IStorage from '../../Storage.interface';
 
 const ENTER_KEY = 13;
@@ -84,7 +84,7 @@ export default class ChatStateMachine {
             resolve(true);
             return;
          }
-         const hasSupport = this.plugin.getDiscoInfoRepository().hasFeature(jid, Namespace.get('CHATSTATES'));
+         const hasSupport = this.plugin.getDiscoInfoRepository().hasFeature(jid, NS.get('CHATSTATES'));
 
          resolve(hasSupport);
       }).then(hasSupport => {

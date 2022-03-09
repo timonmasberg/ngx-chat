@@ -1,4 +1,4 @@
-import * as Namespace from '../../connection/xmpp/namespace';
+import {NS} from '../../connection/xmpp/Namespace';
 import JID from '../../JID';
 import {STATE} from './State';
 
@@ -19,7 +19,7 @@ export default class ChatStateConnection {
             to: to.full,
             type,
         }).c(state, {
-            xmlns: Namespace.get('CHATSTATES'),
+            xmlns: NS.get('CHATSTATES'),
         });
 
         this.send(msg);

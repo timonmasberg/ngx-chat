@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, Input, ViewChild } from '@angular/core';
-import { AttachableTrack } from '../../services/chat-list-state.service';
+import { AttachableTrack } from '../../services/components/chat-list-state.service';
 
 @Component({
     selector: 'ngx-chat-video-window',

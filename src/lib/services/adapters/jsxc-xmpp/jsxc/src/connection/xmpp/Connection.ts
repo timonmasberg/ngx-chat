@@ -1,11 +1,11 @@
 import JID from '../../JID';
 import { IConnection } from '../Connection.interface';
-import * as NS from './namespace';
-import XMPPHandler from './handler';
+import {NS} from './Namespace';
+import XMPPHandler from './XMPPhandler';
 import Log from '../../util/Log';
 import Account from '../../Account';
 import { AbstractConnection, ExtensivePresence, Presence, STANZA_IQ_KEY, STANZA_KEY } from '../AbstractConnection';
-import XMPPJingleHandler from './JingleHandler';
+import XMPPJingleHandler from './XMPPJingleHandler';
 import Client from '../../Client';
 
 // tslint:disable
