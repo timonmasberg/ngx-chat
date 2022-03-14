@@ -133,7 +133,7 @@ export class XmppChatConnectionService {
 
     async logIn(logInRequest: LogInRequest): Promise<void> {
         await this.ngZone.runOutsideAngular(async () => {
-            if (logInRequest.username.indexOf('@') >= 0) {
+            if (logInRequest.username.indexOf('@') > -1) {
                 this.logService.warn('username should not contain domain, only local part, this can lead to errors!');
             }
 

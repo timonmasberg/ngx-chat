@@ -49,7 +49,7 @@
     <div>State: {{chatService.state$ | async}}</div>
 
     <div *ngIf="registrationMessage">
-        <p>{{registrationMessage}}</p>
+        <p data-test="registration-success">{{registrationMessage}}</p>
     </div>
 
     <hr/>
@@ -59,13 +59,13 @@
             Contact Management
         </div>
         <div>
-            <input [(ngModel)]="otherJid" class="form-control" type="text" placeholder="JID"/>
+            <input data-test="contact-jid" [(ngModel)]="otherJid" class="form-control" type="text" placeholder="JID"/>
         </div>
     </div>
 
-    <button (click)="onAddContact()">Add contact</button>
-    <button (click)="onRemoveContact()">Remove contact</button>
-    <button (click)="onOpenChat()">Open chat</button>
+    <button data-test="add-contact"  (click)="onAddContact()">Add contact</button>
+    <button data-test="remove-contact"(click)="onRemoveContact()">Remove contact</button>
+    <button data-test="open-chat" (click)="onOpenChat()">Open chat</button>
 
     <hr/>
 
@@ -75,9 +75,9 @@
     <div>
         <h2>Custom component for a chat session</h2>
         <ng-container *ngIf="(this.chatService.state$ | async) === 'online' && (this.chatService.contactsSubscribed$ | async).length > 0; else messagesComponentInformation">
-            <ngx-chat-message-list [recipient]="(this.chatService.contactsSubscribed$ | async)[0]"
+            <ngx-chat-message-list [recipient]="(this.chatService.contactsSubscribed$ | async)?.[0]"
                                    [showAvatars]="true"></ngx-chat-message-list>
-            <ngx-chat-message-input [recipient]="(this.chatService.contactsSubscribed$ | async)[0]"></ngx-chat-message-input>
+            <ngx-chat-message-input [recipient]="(this.chatService.contactsSubscribed$ | async)?.[0]"></ngx-chat-message-input>
         </ng-container>
         <ng-template #messagesComponentInformation>You need to be logged in and have contacts to see this component</ng-template>
     </div>

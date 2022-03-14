@@ -1,11 +1,11 @@
-import { NgZone } from '@angular/core';
-import { Client, client, xml } from '@xmpp/client';
-import { Subject } from 'rxjs';
-import { first, takeUntil } from 'rxjs/operators';
-import { getDomain } from '../../../../core/get-domain';
-import { timeout } from '../../../../core/utils-timeout';
-import { LogService } from '../../log.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
+import {NgZone} from '@angular/core';
+import {Client, client, xml} from '@xmpp/client';
+import {Subject} from 'rxjs';
+import {first, takeUntil} from 'rxjs/operators';
+import {getDomain} from '../../../../core/get-domain';
+import {timeout} from '../../../../core/utils-timeout';
+import {LogService} from '../../log.service';
+import {AbstractXmppPlugin} from './abstract-xmpp-plugin';
 
 /**
  * XEP-0077: In-Band Registration
@@ -35,6 +35,10 @@ export class RegistrationPlugin extends AbstractXmppPlugin {
                           domain: string): Promise<void> {
         await this.ngZone.runOutsideAngular(async () => {
             try {
+                if (username.indexOf('@') > -1) {
+                    this.logService.warn('username should not contain domain, only local part, this can lead to errors!');
+                }
+
                 await timeout((async () => {
                     domain = domain || getDomain(service);
 
@@ -74,14 +78,19 @@ export class RegistrationPlugin extends AbstractXmppPlugin {
     }
 
     private connect(username: string, password: string, service: string, domain?: string): Promise<void> {
-        return new Promise(resolveConnectionEstablished => {
+        return new Promise((resolveConnectionEstablished, reject) => {
             this.client = client({
                 domain: domain || getDomain(service),
                 service,
                 credentials: async (authenticationCallback) => {
+                    try {
                     resolveConnectionEstablished();
                     await this.registered$.pipe(takeUntil(this.cleanUp), first()).toPromise();
                     await authenticationCallback({username, password});
+                    } catch (e) {
+                        this.logService.error('authenticationCallback failed with userName=' + username , e);
+                        reject(e)
+                    }
                 }
             });
 
@@ -95,6 +104,7 @@ export class RegistrationPlugin extends AbstractXmppPlugin {
 
             this.client.on('error', (err: any) => {
                 this.logService.error('registration plugin', err);
+                reject(err);
             });
 
             this.client.on('offline', () => {

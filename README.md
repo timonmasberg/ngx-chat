@@ -122,7 +122,7 @@ body.has-roster {
 Below you will find some instructions to getting
 started. [Have a look at the wiki for more FAQ's and abstract documentation.](https://github.com/pazznetwork/ngx-chat/wiki)
 
-For a api, architecture and code overview checkout our [**
+For an api, architecture and code overview checkout our [**
 compo**doc documentation](https://pazznetwork.github.io/ngx-chat-ghpages/documentation/).
 
 ### FAQ

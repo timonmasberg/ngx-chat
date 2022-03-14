@@ -31,7 +31,7 @@ const adapterMap = new Map<ChatAdapter, ModuleWithProviders<NgxChatModule>>([
     imports: [
         BrowserModule,
         BrowserAnimationsModule,
-        NgxChatModule.forRootJSXC(),
+        NgxChatModule.forRoot(),
         FormsModule,
         AppRoutingModule,
     ],
