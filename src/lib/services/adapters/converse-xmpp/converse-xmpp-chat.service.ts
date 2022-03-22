@@ -5,7 +5,6 @@ import {LogInRequest} from '../../../core/log-in-request';
 import {Contact} from '../../../core/contact';
 import {Recipient} from '../../../core/recipient';
 import {Room} from '../../../core/room';
-import {Translations} from '../../../core/translations';
 import {FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from '../../../../public-api';
 import {JID} from '@xmpp/jid';
 import {defaultTranslations} from '../../../core/translations-default';
@@ -220,6 +219,10 @@ export class ConverseXmppChatService implements ChatService {
     }
 
     unbanUserForRoom(occupantJid: JID, roomJid: JID): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    unblockJid(bareJid: string): Promise<void> {
         return Promise.resolve(undefined);
     }
 

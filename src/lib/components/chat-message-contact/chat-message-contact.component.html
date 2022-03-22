@@ -1,0 +1,41 @@
+<ngx-chat-message-simple
+        [direction]="Direction.in"
+        [avatar]="showAvatars ? contact.avatar : undefined"
+        [footerHidden]="true"
+        *ngIf="subscriptionActionShown()"
+>
+    <span>{{getMessage()}}</span>
+    <ul class="chat-presence-subscription-actions">
+        <li>
+            <a data-name="accept-user"
+               [class.action-disabled]="subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS"
+               *ngIf="subscriptionAction !== SubscriptionAction.BLOCK_FOR_UNAFFILIATED"
+               (click)="acceptSubscriptionRequest($event)"
+               href="#"
+            >{{chatService.translations.acceptSubscriptionRequest}}</a>
+        </li>
+
+        <li>
+            <a data-name="deny-user"
+               [class.action-disabled]="subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS"
+               *ngIf="subscriptionAction !== SubscriptionAction.BLOCK_FOR_UNAFFILIATED"
+               (click)="denySubscriptionRequest($event)"
+               href="#"
+            >{{chatService.translations.denySubscriptionRequest}}</a>
+        </li>
+    </ul>
+    <ul class="deny-actions"
+        *ngIf="chatService.supportsPlugin.block && (subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS || subscriptionAction === SubscriptionAction.BLOCK_FOR_UNAFFILIATED)">
+        <li>
+            <a data-name="block-user" (click)="blockContact($event)" href="#">{{chatService.translations.block}}</a>
+        </li>
+        <li *ngIf="reportUserService">
+            <a data-name="block-and-report-user" (click)="blockContactAndReport($event)"
+               href="#">{{chatService.translations.blockAndReport}}</a>
+        </li>
+        <li>
+            <a data-name="dismiss-block-message" (click)="dismissBlockOptions($event)"
+               href="#">{{chatService.translations.dismiss}}</a>
+        </li>
+    </ul>
+</ngx-chat-message-simple>

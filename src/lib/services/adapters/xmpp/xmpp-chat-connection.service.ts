@@ -1,13 +1,13 @@
-import { Injectable, NgZone } from '@angular/core';
-import { Client, xml } from '@xmpp/client';
-import { JID } from '@xmpp/jid';
-import { Element } from 'ltx';
-import { BehaviorSubject, Subject } from 'rxjs';
-import { LogInRequest } from '../../../core/log-in-request';
-import { IqResponseStanza, Stanza } from '../../../core/stanza';
-import { LogService } from '../log.service';
-import { XmppResponseError } from './xmpp-response.error';
-import { XmppClientFactoryService } from './xmpp-client-factory.service';
+import {Injectable, NgZone} from '@angular/core';
+import {Client, xml} from '@xmpp/client';
+import {JID} from '@xmpp/jid';
+import {Element} from 'ltx';
+import {BehaviorSubject, Subject} from 'rxjs';
+import {LogInRequest} from '../../../core/log-in-request';
+import {IqResponseStanza, Stanza} from '../../../core/stanza';
+import {LogService} from '../log.service';
+import {XmppResponseError} from './xmpp-response.error';
+import {XmppClientFactoryService} from './xmpp-client-factory.service';
 
 export type XmppChatStates = 'disconnected' | 'online' | 'reconnecting';
 
@@ -35,7 +35,8 @@ export class XmppChatConnectionService {
         private readonly logService: LogService,
         private readonly ngZone: NgZone,
         private readonly xmppClientFactoryService: XmppClientFactoryService,
-    ) {}
+    ) {
+    }
 
     public onOnline(jid: JID): void {
         this.logService.info('online =', 'online as', jid.toString());
@@ -195,17 +196,19 @@ export class XmppChatConnectionService {
     }
 
     async logOut(): Promise<void> {
+        if (!this.client) {
+            return Promise.resolve();
+        }
         // TODO: move this to a presence plugin in a handler
         this.logService.debug('logging out');
-        if (this.client) {
+        try {
+            await this.send(xml('presence', {type: 'unavailable'}));
             this.client.reconnect.stop();
-            try {
-                await this.send(xml('presence', {type: 'unavailable'}));
-            } catch (e) {
-                this.logService.error('error sending presence unavailable');
-            } finally {
-                this.client.stop();
-            }
+        } catch (e) {
+            this.logService.error('error sending presence unavailable');
+        } finally {
+            this.client.stop();
+            delete this.client;
         }
     }
 

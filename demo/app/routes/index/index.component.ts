@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import {Component, Inject} from '@angular/core';
 import {
     CHAT_SERVICE_TOKEN,
     ChatBackgroundNotificationService,
@@ -59,7 +59,7 @@ export class IndexComponent {
             username: this.username,
         };
         localStorage.setItem('data', JSON.stringify(logInRequest));
-      await  this.chatService.logIn(logInRequest);
+        await this.chatService.logIn(logInRequest);
     }
 
     async onLogout() {
@@ -70,20 +70,20 @@ export class IndexComponent {
         this.registrationMessage = 'registering ...';
         try {
             await this.chatService.register({
-                username: this.username,
-                password: this.password,
-                service: this.service,
-                domain: this.domain,
+                    username: this.username,
+                    password: this.password,
+                    service: this.service,
+                    domain: this.domain,
                 }
             );
-            this.registrationMessage = 'registration successful';
+            this.registrationMessage = this.username + ' registration was successful';
         } catch (e) {
             this.registrationMessage = 'registration failed: ' + e.toString();
             throw e;
         }
     }
 
-   async onAddContact() {
+    async onAddContact() {
         await this.chatService.addContact(this.otherJid);
     }
 
@@ -103,4 +103,11 @@ export class IndexComponent {
         await this.chatService.reconnect();
     }
 
+    async blockContact(): Promise<void> {
+        await this.chatService.blockJid(this.otherJid);
+    }
+
+    async unblockContact(): Promise<void> {
+        await this.chatService.unblockJid(this.otherJid);
+    }
 }

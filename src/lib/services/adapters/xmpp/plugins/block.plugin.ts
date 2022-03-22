@@ -1,9 +1,9 @@
-import { xml } from '@xmpp/client';
-import { BehaviorSubject } from 'rxjs';
-import { Stanza } from '../../../../core/stanza';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
+import {xml} from '@xmpp/client';
+import {BehaviorSubject} from 'rxjs';
+import {Stanza} from '../../../../core/stanza';
+import {XmppChatAdapter} from '../xmpp-chat-adapter.service';
+import {AbstractXmppPlugin} from './abstract-xmpp-plugin';
+import {ServiceDiscoveryPlugin} from './service-discovery.plugin';
 
 /**
  * XEP-0191: Blocking Command
@@ -40,21 +40,31 @@ export class BlockPlugin extends AbstractXmppPlugin {
 
     onOffline() {
         this.supportsBlock$.next('unknown');
-        this.xmppChatAdapter.blockedContactIds$.next(new Set<string>());
+        this.xmppChatAdapter.blockedContactJids$.next(new Set<string>());
     }
 
-    blockJid(jid: string) {
-        return this.xmppChatAdapter.chatConnectionService.sendIq(
+    async blockJid(from: string, jid: string) {
+        const response = await this.xmppChatAdapter.chatConnectionService.sendIq(
             xml('iq', {type: 'set'},
                 xml('block', {xmlns: 'urn:xmpp:blocking'},
-                    xml('item', {jid}))));
+                    xml('item', {from, jid}))));
+
+        const current = this.xmppChatAdapter.blockedContactJids$.getValue();
+        current.add(jid);
+        this.xmppChatAdapter.blockedContactJids$.next(current);
+        return response;
     }
 
-    unblockJid(jid: string) {
-        return this.xmppChatAdapter.chatConnectionService.sendIq(
+    async unblockJid(jid: string) {
+        const response = await this.xmppChatAdapter.chatConnectionService.sendIq(
             xml('iq', {type: 'set'},
                 xml('unblock', {xmlns: 'urn:xmpp:blocking'},
                     xml('item', {jid}))));
+
+        const current = this.xmppChatAdapter.blockedContactJids$.getValue();
+        current.delete(jid);
+        this.xmppChatAdapter.blockedContactJids$.next(current);
+        return response;
     }
 
     private async requestBlockedJids() {
@@ -69,7 +79,7 @@ export class BlockPlugin extends AbstractXmppPlugin {
             .getChildren('item')
             .map(e => e.attrs.jid);
 
-        this.xmppChatAdapter.blockedContactIds$.next(new Set<string>(blockedJids));
+        this.xmppChatAdapter.blockedContactJids$.next(new Set<string>(blockedJids));
     }
 
     handleStanza(stanza: Stanza): boolean {
@@ -77,12 +87,12 @@ export class BlockPlugin extends AbstractXmppPlugin {
         if (from && from === this.xmppChatAdapter.chatConnectionService.userJid?.bare().toString()) {
             const blockPush = stanza.getChild('block', 'urn:xmpp:blocking');
             const unblockPush = stanza.getChild('unblock', 'urn:xmpp:blocking');
-            const blockList = this.xmppChatAdapter.blockedContactIds$.getValue();
+            const blockList = this.xmppChatAdapter.blockedContactJids$.getValue();
             if (blockPush) {
                 blockPush.getChildren('item')
                     .map(e => e.attrs.jid as string)
                     .forEach(jid => blockList.add(jid));
-                this.xmppChatAdapter.blockedContactIds$.next(blockList);
+                this.xmppChatAdapter.blockedContactJids$.next(blockList);
                 return true;
             } else if (unblockPush) {
                 const jidsToUnblock = unblockPush.getChildren('item').map(e => e.attrs.jid as string);
@@ -93,7 +103,7 @@ export class BlockPlugin extends AbstractXmppPlugin {
                     // unblock individually
                     jidsToUnblock.forEach(jid => blockList.delete(jid));
                 }
-                this.xmppChatAdapter.blockedContactIds$.next(blockList);
+                this.xmppChatAdapter.blockedContactJids$.next(blockList);
                 return true;
             }
         }

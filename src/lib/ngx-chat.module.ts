@@ -50,6 +50,7 @@ import { LogService } from './services/adapters/log.service';
 import { FILE_UPLOAD_HANDLER_TOKEN } from './hooks/file-upload-handler';
 import {ConverseXmppChatService} from './services/adapters/converse-xmpp/converse-xmpp-chat.service';
 import {JSXCXmppChatService} from './services/adapters/jsxc-xmpp/jsxc-xmpp-chat.service';
+import {ChatMessageContactComponent} from './components/chat-message-contact/chat-message-contact.component';
 
 @NgModule({
     imports: [
@@ -63,6 +64,7 @@ import {JSXCXmppChatService} from './services/adapters/jsxc-xmpp/jsxc-xmpp-chat.
         ChatMessageComponent,
         ChatMessageInputComponent,
         ChatMessageLinkComponent,
+        ChatMessageContactComponent,
         ChatMessageListComponent,
         ChatMessageSimpleComponent,
         ChatMessageTextComponent,

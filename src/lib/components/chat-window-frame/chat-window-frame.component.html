@@ -4,7 +4,7 @@
 
         <ng-content select=".window-header-content"></ng-content>
 
-        <div *ngIf="closeClick.observers.length > 0" class="window-close" (click)="closeClick.emit()">
+        <div *ngIf="closeClick.observers.length > 0" class="window-close" data-name="close-chat" (click)="closeClick.emit()">
             &times;
         </div>
 

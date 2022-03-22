@@ -46,10 +46,10 @@
         <button name="reconnect" (click)="onReconnect()">Reconnect</button>
     </div>
 
-    <div>State: {{chatService.state$ | async}}</div>
+    <div data-name="chat-connection-state">State: {{chatService.state$ | async}}</div>
 
     <div *ngIf="registrationMessage">
-        <p data-test="registration-success">{{registrationMessage}}</p>
+        <p data-name="registration-success">{{registrationMessage}}</p>
     </div>
 
     <hr/>
@@ -59,13 +59,15 @@
             Contact Management
         </div>
         <div>
-            <input data-test="contact-jid" [(ngModel)]="otherJid" class="form-control" type="text" placeholder="JID"/>
+            <input data-name="contact-jid" [(ngModel)]="otherJid" class="form-control" type="text" placeholder="JID (name@domain)"/>
         </div>
     </div>
 
-    <button data-test="add-contact"  (click)="onAddContact()">Add contact</button>
-    <button data-test="remove-contact"(click)="onRemoveContact()">Remove contact</button>
-    <button data-test="open-chat" (click)="onOpenChat()">Open chat</button>
+    <button data-name="add-contact"  (click)="onAddContact()">Add contact</button>
+    <button data-name="remove-contact"(click)="onRemoveContact()">Remove contact</button>
+    <button data-name="block-contact"(click)="blockContact()">Block contact</button>
+    <button data-name="unblock-contact"(click)="unblockContact()">Unblock contact</button>
+    <button data-name="open-chat" (click)="onOpenChat()">Open chat</button>
 
     <hr/>
 

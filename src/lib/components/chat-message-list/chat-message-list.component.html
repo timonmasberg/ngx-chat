@@ -21,6 +21,12 @@
         {{chatService.translations.noMessages}}
     </div>
 
+    <ngx-chat-message-contact
+            *ngIf="recipient.recipientType === 'contact'"
+            [contact]="recipientAsContact"
+            (scheduleScrollToLastMessage$)="scheduleScrollToLastMessage()"
+    ></ngx-chat-message-contact>
+
     <ngx-chat-message-simple
             [direction]="Direction.in"
             [avatar]="undefined"
@@ -33,52 +39,6 @@
             </li>
             <li>
                 <a (click)="declineRoomInvite($event)" href="#">Decline</a>
-            </li>
-        </ul>
-    </ngx-chat-message-simple>
-
-    <ngx-chat-message-simple
-            [direction]="Direction.in"
-            [avatar]="showAvatars ? recipient.avatar : undefined"
-            [footerHidden]="true"
-            *ngIf="subscriptionActionShown()"
-    >
-        <span>
-            {{chatService.translations.subscriptionRequestMessage}}
-        </span>
-        <ul class="chat-presence-subscription-actions">
-            <li>
-                <span class="action-disabled"
-                      *ngIf="subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS"
-                >{{chatService.translations.acceptSubscriptionRequest}}</span>
-
-                <a *ngIf="subscriptionAction === SubscriptionAction.PENDING_REQUEST"
-                   (click)="acceptSubscriptionRequest($event)"
-                   href="#"
-                >{{chatService.translations.acceptSubscriptionRequest}}</a>
-            </li>
-
-            <li>
-                <span class="action-disabled"
-                      *ngIf="subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS"
-                >{{chatService.translations.denySubscriptionRequest}}</span>
-
-                <a *ngIf="subscriptionAction === SubscriptionAction.PENDING_REQUEST"
-                   (click)="denySubscriptionRequest($event)"
-                   href="#"
-                >{{chatService.translations.denySubscriptionRequest}}</a>
-            </li>
-        </ul>
-        <ul class="deny-actions"
-            *ngIf="chatService.supportsPlugin.block && subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS">
-            <li>
-                <a (click)="blockContact($event)" href="#">{{chatService.translations.block}}</a>
-            </li>
-            <li *ngIf="reportUserService">
-                <a (click)="blockContactAndReport($event)" href="#">{{chatService.translations.blockAndReport}}</a>
-            </li>
-            <li>
-                <a (click)="dismissBlockOptions($event)" href="#">{{chatService.translations.dismiss}}</a>
             </li>
         </ul>
     </ngx-chat-message-simple>

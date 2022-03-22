@@ -20,5 +20,6 @@ export interface Translations {
     presence: { [P in Presence]: string; };
     rooms: string;
     subscriptionRequestMessage: string;
+    unaffiliatedMessage: string;
     timeFormat: string;
 }

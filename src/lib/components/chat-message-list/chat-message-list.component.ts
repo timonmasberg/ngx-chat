@@ -8,7 +8,6 @@ import {
     OnChanges,
     OnDestroy,
     OnInit,
-    Optional,
     QueryList,
     SimpleChanges,
     ViewChild,
@@ -18,20 +17,12 @@ import {Observable, Subject} from 'rxjs';
 import {debounceTime, filter, takeUntil} from 'rxjs/operators';
 import {Direction, Message} from '../../core/message';
 import {Recipient} from '../../core/recipient';
-import {ChatListStateService} from '../../services/components/chat-list-state.service';
 import {ChatMessageListRegistryService} from '../../services/components/chat-message-list-registry.service';
 import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
 import {ContactFactoryService} from '../../services/adapters/contact-factory.service';
-import {REPORT_USER_INJECTION_TOKEN, ReportUserService} from '../../hooks/report-user-service';
 import {ChatMessageComponent} from '../chat-message/chat-message.component';
 import {RoomMessage} from '../../services/adapters/xmpp/plugins/multi-user-chat/room-message';
 import {Contact, Invitation} from '../../core/contact';
-
-enum SubscriptionAction {
-    PENDING_REQUEST,
-    SHOW_BLOCK_ACTIONS,
-    NO_PENDING_REQUEST,
-}
 
 @Component({
     selector: 'ngx-chat-message-list',
@@ -53,8 +44,6 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
     chatMessageViewChildrenList: QueryList<ChatMessageComponent>;
 
     Direction = Direction;
-    SubscriptionAction = SubscriptionAction;
-    subscriptionAction = SubscriptionAction.NO_PENDING_REQUEST;
     onTop$ = new Subject<IntersectionObserverEntry>();
 
     private ngDestroy = new Subject<void>();
@@ -63,33 +52,24 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
     private oldestVisibleMessageBeforeLoading: Message = null;
     private pendingRoomInvite: Invitation | null = null;
 
+    get recipientAsContact(): Contact {
+        return this.recipient as Contact;
+    }
+
     constructor(
-        public chatListService: ChatListStateService,
         @Inject(CHAT_SERVICE_TOKEN) public chatService: ChatService,
         private chatMessageListRegistry: ChatMessageListRegistryService,
-        @Optional() @Inject(REPORT_USER_INJECTION_TOKEN) public reportUserService: ReportUserService,
         private changeDetectorRef: ChangeDetectorRef,
         private contactFactory: ContactFactoryService,
     ) {
     }
 
     async ngOnInit() {
-
         this.onTop$
             .pipe(filter(event => event.isIntersecting), debounceTime(1000))
             .subscribe(() => this.loadOlderMessagesBeforeViewport());
 
         if (this.recipient.recipientType === 'contact') {
-            this.recipient.pendingIn$
-                .pipe(
-                    filter(pendingIn => pendingIn === true),
-                    takeUntil(this.ngDestroy),
-                )
-                .subscribe(() => {
-                    this.subscriptionAction = SubscriptionAction.PENDING_REQUEST;
-                    this.scheduleScrollToLastMessage();
-                });
-
             this.recipient.pendingRoomInvite$
                 .pipe(
                     filter(invite => invite != null),
@@ -143,55 +123,8 @@ export class ChatMessageListComponent implements OnInit, OnDestroy, OnChanges, A
         this.chatMessageListRegistry.decrementOpenWindowCount(this.recipient);
     }
 
-    acceptSubscriptionRequest(event: Event) {
-        event.preventDefault();
-        if (this.subscriptionAction === SubscriptionAction.PENDING_REQUEST) {
-            this.chatService.addContact(this.recipient.jidBare.toString());
-            this.subscriptionAction = SubscriptionAction.NO_PENDING_REQUEST;
-            this.scheduleScrollToLastMessage();
-        }
-    }
-
-    denySubscriptionRequest(event: Event) {
-        event.preventDefault();
-        if (this.subscriptionAction === SubscriptionAction.PENDING_REQUEST) {
-            this.chatService.removeContact(this.recipient.jidBare.toString());
-            this.subscriptionAction = SubscriptionAction.SHOW_BLOCK_ACTIONS;
-            this.scheduleScrollToLastMessage();
-        }
-    }
-
     scheduleScrollToLastMessage() {
         setTimeout(() => this.scrollToLastMessage(), 0);
-    }
-
-    blockContact($event: MouseEvent) {
-        $event.preventDefault();
-        this.chatService.blockJid(this.recipient.jidBare.toString());
-        this.chatListService.closeChat(this.recipient);
-        this.subscriptionAction = SubscriptionAction.NO_PENDING_REQUEST;
-    }
-
-    blockContactAndReport($event: MouseEvent) {
-        if (this.recipient.recipientType !== 'contact') {
-            return;
-        }
-        $event.preventDefault();
-        this.reportUserService.reportUser(this.recipient);
-        this.blockContact($event);
-    }
-
-    dismissBlockOptions($event: MouseEvent) {
-        $event.preventDefault();
-        this.subscriptionAction = SubscriptionAction.NO_PENDING_REQUEST;
-    }
-
-    subscriptionActionShown() {
-        if (this.recipient.recipientType !== 'contact') {
-            return false;
-        }
-        return this.subscriptionAction === SubscriptionAction.PENDING_REQUEST
-            || (this.chatService.supportsPlugin.block && this.subscriptionAction === SubscriptionAction.SHOW_BLOCK_ACTIONS);
     }
 
     async loadOlderMessagesBeforeViewport() {

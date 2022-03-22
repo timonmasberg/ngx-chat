@@ -1,13 +1,13 @@
-import { Component, ElementRef, EventEmitter, Inject, Input, OnInit, Output, ViewChild } from '@angular/core';
-import { Recipient } from '../../core/recipient';
-import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/chat-service';
+import {Component, ElementRef, EventEmitter, Inject, Input, OnInit, Output, ViewChild} from '@angular/core';
+import {Recipient} from '../../core/recipient';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
 
 @Component({
     selector: 'ngx-chat-message-input',
     templateUrl: './chat-message-input.component.html',
     styleUrls: ['./chat-message-input.component.less'],
 })
-export class ChatMessageInputComponent implements OnInit {
+export class ChatMessageInputComponent {
 
     @Input()
     public recipient: Recipient;
@@ -23,14 +23,11 @@ export class ChatMessageInputComponent implements OnInit {
     constructor(@Inject(CHAT_SERVICE_TOKEN) public chatService: ChatService) {
     }
 
-    ngOnInit() {
-    }
-
-    onSendMessage($event?: KeyboardEvent) {
+    async onSendMessage($event?: KeyboardEvent) {
         if ($event) {
             $event.preventDefault();
         }
-        this.chatService.sendMessage(this.recipient, this.message);
+        await this.chatService.sendMessage(this.recipient, this.message);
         this.message = '';
         this.messageSent.emit();
     }

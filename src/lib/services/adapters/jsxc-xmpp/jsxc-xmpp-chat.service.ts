@@ -578,6 +578,10 @@ export class JSXCXmppChatService implements ChatService {
     private isOffline(): boolean {
         return this.state$.getValue() !== 'online';
     }
+
+    unblockJid(bareJid: string): Promise<void> {
+        return Promise.resolve(undefined);
+    }
 }
 
 function isMultiChatWrapper(contactWrapper: MultiUserContactWrapper | ContactWrapper): contactWrapper is MultiUserContactWrapper {

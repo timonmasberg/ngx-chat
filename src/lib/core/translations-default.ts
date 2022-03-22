@@ -26,6 +26,7 @@ export function defaultTranslations(): Translations {
         },
         rooms: 'Rooms',
         subscriptionRequestMessage: 'I want to add you as a contact.',
+        unaffiliatedMessage: 'This conversation started without a contact request',
         timeFormat: 'shortTime',
     };
 }

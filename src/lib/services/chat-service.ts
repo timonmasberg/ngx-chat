@@ -328,6 +328,8 @@ export interface ChatService {
 
     blockJid(bareJid: string): Promise<void>;
 
+    unblockJid(bareJid: string): Promise<void>;
+
     joinRoom(jid: JID): Promise<Room>;
 
     subscribeRoom(roomJid: string, nodes: string[]): Promise<void>;

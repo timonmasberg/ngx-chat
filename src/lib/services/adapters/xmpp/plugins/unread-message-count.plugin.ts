@@ -96,7 +96,7 @@ export class UnreadMessageCountPlugin extends AbstractXmppPlugin {
         this.publishSubscribePlugin.publish$
             .subscribe((event) => this.handlePubSubEvent(event));
 
-        this.unreadMessageCountSum$ = combineLatest([this.jidToUnreadCount$, this.chatService.blockedContactIds$])
+        this.unreadMessageCountSum$ = combineLatest([this.jidToUnreadCount$, this.chatService.blockedContactJids$])
             .pipe(
                 debounceTime(20),
                 map(([jidToUnreadCount, blockedContactIdSet]) => {
