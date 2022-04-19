@@ -1,6 +1,6 @@
-import { PlatformLocation } from '@angular/common';
-import { Component, Inject, InjectionToken, Optional } from '@angular/core';
-import { Router } from '@angular/router';
+import {PlatformLocation} from '@angular/common';
+import {Component, Inject, InjectionToken, Optional, ViewChild} from '@angular/core';
+import {Router} from '@angular/router';
 
 export interface LinkOpener {
     openLink(url: string): void;
@@ -21,19 +21,20 @@ export class ChatMessageLinkComponent {
     link: string;
     text: string;
 
+    @ViewChild('anchor')
+    anchor: HTMLAnchorElement;
+
     constructor(private router: Router,
                 private platformLocation: PlatformLocation,
-                @Optional() @Inject(LINK_OPENER_TOKEN) private linkOpener: LinkOpener) { }
+                @Optional() @Inject(LINK_OPENER_TOKEN) private linkOpener: LinkOpener) {
+    }
 
-    onClick($event: Event) {
+    async onClick($event: Event) {
+        $event.preventDefault();
         if (this.linkOpener) {
-            $event.preventDefault();
             this.linkOpener.openLink(this.link);
         } else if (this.isInApp()) {
-            $event.preventDefault();
-            const linkParser = document.createElement('a');
-            linkParser.href = this.link;
-            this.router.navigateByUrl(linkParser.pathname);
+            await this.router.navigateByUrl(this.anchor.pathname);
         }
     }
 
