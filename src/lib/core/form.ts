@@ -1,6 +1,4 @@
-import {Element as LtxElement} from 'ltx';
-import {jid as parseJid, JID} from '@xmpp/jid';
-import {xml} from '@xmpp/client';
+import {Builder} from '../services/adapters/xmpp/chat-connection.service';
 
 // implements https://xmpp.org/extensions/xep-0004.html
 
@@ -31,8 +29,8 @@ export interface FieldValueType {
     fixed: string;
     boolean: boolean;
     hidden: string;
-    'jid-single': JID;
-    'jid-multi': JID[];
+    'jid-single': string;
+    'jid-multi': string[];
     'list-single': string;
     'list-multi': string[];
     'text-single': string;
@@ -83,36 +81,35 @@ export interface FieldOption {
     value: string;
 }
 
-function parseStringValue([valueEl]: LtxElement[]): string {
-    return valueEl?.getText();
+function parseStringValue([valueEl]: Element[]): string {
+    return valueEl?.textContent;
 }
 
-function parseMultipleStringValues(valueEls: LtxElement[]): string[] {
+function parseMultipleStringValues(valueEls: Element[]): string[] {
     return valueEls.map(el => parseStringValue([el]));
 }
 
-function parseJidValue([valueEl]: LtxElement[]): JID {
-    return valueEl && parseJid(valueEl.getText());
+function parseJidValue([valueEl]: Element[]): string {
+    return valueEl && valueEl.textContent;
 }
 
 const valueParsers = {
     fixed: parseStringValue,
-    boolean: ([valueEl]: LtxElement[]): boolean => {
+    boolean: ([valueEl]: Element[]): boolean => {
         if (!valueEl) {
             return false;
         }
-        const value = valueEl.getText();
+        const value = valueEl.textContent;
         return value === '1' || value === 'true';
     },
     hidden: parseStringValue,
     'jid-single': parseJidValue,
-    'jid-multi': (valueEls: LtxElement[]): JID[] =>
+    'jid-multi': (valueEls: Element[]): string[] =>
         [
             ...new Set(
                 valueEls.map(el => parseStringValue([el])),
             ),
-        ]
-            .map(jidStr => parseJid(jidStr)),
+        ],
     'list-single': parseStringValue,
     'list-multi': parseMultipleStringValues,
     'text-single': parseStringValue,
@@ -120,49 +117,39 @@ const valueParsers = {
     'text-multi': parseMultipleStringValues,
 };
 
-export function parseForm(formEl: LtxElement): Form {
-    if (formEl.name !== 'x' || formEl.getNS() !== FORM_NS) {
-        throw new Error(`Provided element is not a form element: elementName=${formEl.name}, xmlns=${formEl.getNS()}, form=${formEl.toString()}`);
+export function parseForm(formEl: Element): Form {
+    if (formEl.nodeName !== 'x' || formEl.namespaceURI !== FORM_NS) {
+        throw new Error(`Provided element is not a form element: elementName=${formEl.namespaceURI}, xmlns=${formEl.namespaceURI}, form=${formEl.toString()}`);
     }
 
     return {
-        type: formEl.attrs.type,
-        title: formEl.getChildText('title') ?? undefined,
-        instructions: formEl.getChildren('instructions').map(descEl => descEl.getText()),
-        fields: formEl.getChildren('field')
+        type: formEl.getAttribute('type') as FormType,
+        title: formEl.getAttribute('title') ?? undefined,
+        instructions: Array.from(formEl.querySelectorAll('instructions')).map(descEl => descEl.textContent),
+        fields: Array.from(formEl.querySelectorAll('field'))
             .map(fieldEl => {
-                const rawType = fieldEl.attrs.type as string;
+                const rawType = fieldEl.getAttribute('type');
                 const type = rawType in valueParsers ? rawType as keyof typeof valueParsers : 'text-single';
-                const {var: variable, label}: { var?: string, label?: string } = fieldEl.attrs;
+                const variable = fieldEl.getAttribute('var');
+                const label = fieldEl.getAttribute('label');
                 let options: FieldOption[] | undefined;
                 if (type === 'list-single' || type === 'list-multi') {
-                    options = fieldEl.getChildren('option').map(optionEl => ({
-                        value: optionEl.getChildText('value'),
-                        label: optionEl.attrs.label,
+                    options = Array.from(fieldEl.querySelectorAll('option')).map(optionEl => ({
+                        value: optionEl.querySelector('value').textContent,
+                        label: optionEl.getAttribute('label'),
                     }));
                 }
                 return {
                     type,
                     variable,
                     label,
-                    description: fieldEl.getChildText('desc') ?? undefined,
-                    required: fieldEl.getChild('required') != null,
-                    value: valueParsers[type](fieldEl.getChildren('value')),
+                    description: fieldEl.querySelector('desc').textContent ?? undefined,
+                    required: fieldEl.querySelector('required') != null,
+                    value: valueParsers[type](Array.from(fieldEl.querySelectorAll('value'))),
                     options,
                 } as FormField;
             }),
     };
-}
-
-export function toLtxElement(element: Element): LtxElement {
-    const attributes = element.getAttributeNames().reduce<Record<string, unknown>>((collection, attributeName) => {
-        collection[attributeName] = element.getAttribute(attributeName);
-        return collection;
-    }, {});
-
-    const ltxRoot = new LtxElement(element.nodeName, attributes);
-    ltxRoot.children = Array.from(element.children).map(el => toLtxElement(el));
-    return ltxRoot;
 }
 
 export function getField(form: Form, variable: string): FormField | undefined {
@@ -220,7 +207,7 @@ const valueSerializers: Record<FieldType, (field: FormField) => string[]> = {
     'text-multi': serializeTextualMultiField,
 };
 
-export function serializeToSubmitForm(form: Form): LtxElement {
+export function serializeToSubmitForm(builder: Builder, form: Form): Builder {
     const serializedFields = form.fields
         .reduce<[string, string[]][]>((collectedFields, field) => {
             const serializer = valueSerializers[field.type];
@@ -237,14 +224,12 @@ export function serializeToSubmitForm(form: Form): LtxElement {
             return collectedFields;
         }, []);
 
-    return xml('x', {xmlns: FORM_NS, type: 'submit'},
-        ...serializedFields.map(
-            ([variable, values]) =>
-                xml(
-                    'field',
-                    {var: variable},
-                    ...values.map(value => xml('value', {}, value)),
-                ),
-        ),
-    );
+    const childBuilder = builder.c('x', {xmlns: FORM_NS, type: 'submit'});
+    serializedFields.map(
+        ([variable, values]) => {
+            const childChildBuilder = childBuilder.c('field', {var: variable});
+            values.map(value => childChildBuilder.c('value', {}, value));
+        });
+
+    return builder;
 }

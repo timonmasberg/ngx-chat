@@ -13,13 +13,13 @@ import {LogService} from '../log.service';
 import {MessageUuidPlugin} from './plugins/message-uuid.plugin';
 import {MessagePlugin} from './plugins/message.plugin';
 import {XmppChatAdapter} from './xmpp-chat-adapter.service';
-import {XmppChatConnectionService} from './xmpp-chat-connection.service';
+import {ChatConnectionService} from './chat-connection.service';
 import {XmppClientFactoryService} from './xmpp-client-factory.service';
 
 describe('XmppChatAdapter', () => {
 
     let chatService: XmppChatAdapter;
-    let chatConnectionService: XmppChatConnectionService;
+    let chatConnectionService: ChatConnectionService;
     let contactFactory;
 
     let contact1: Contact;
@@ -33,7 +33,7 @@ describe('XmppChatAdapter', () => {
         const logService = testLogService();
         TestBed.configureTestingModule({
             providers: [
-                XmppChatConnectionService,
+                ChatConnectionService,
                 {provide: XmppClientFactoryService, useValue: mockClientFactory},
                 {provide: CHAT_SERVICE_TOKEN, useClass: XmppChatAdapter},
                 {provide: LogService, useValue: logService},
@@ -41,7 +41,7 @@ describe('XmppChatAdapter', () => {
             ]
         });
 
-        chatConnectionService = TestBed.inject(XmppChatConnectionService);
+        chatConnectionService = TestBed.inject(ChatConnectionService);
         chatConnectionService.client = xmppClientMock;
         contactFactory = TestBed.inject(ContactFactoryService);
         chatService = TestBed.inject(CHAT_SERVICE_TOKEN) as XmppChatAdapter;

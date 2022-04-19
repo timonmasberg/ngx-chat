@@ -16,7 +16,7 @@ import {Room} from '../../../core/room';
 import {LogInRequest} from '../../../core/log-in-request';
 import {Recipient} from '../../../core/recipient';
 import {FileUploadHandler} from '../../../hooks/file-upload-handler';
-import {Form, parseForm, toLtxElement} from '../../../core/form';
+import {Form, parseForm} from '../../../core/form';
 import {ContactFactoryService} from '../contact-factory.service';
 import JSXC from './jsxc/src';
 import PluginRepository from './jsxc/src/plugin/PluginRepository';
@@ -227,7 +227,7 @@ export class JSXCXmppChatService implements ChatService {
     async getRoomConfiguration(roomJid: JID): Promise<Form> {
         const muc = this.currentUserAccountWrapper.getMultiUserContact(roomJid.toString());
         const form = await muc.getRoomConfigurationFormElement();
-        return parseForm(toLtxElement(form));
+        return parseForm(form);
     }
 
     async queryRoomUserList(roomJid: JID): Promise<RoomUser[]> {
@@ -334,14 +334,14 @@ export class JSXCXmppChatService implements ChatService {
         }
         const subscriptions = await this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService.getSubscriptions();
 
-        const mapped = toLtxElement(subscriptions)
-            .getChild('subscriptions', MUC_SUB_FEATURE_ID)
-            ?.getChildren('subscription')
+        const mapped = Array.from(Array.from(subscriptions.querySelectorAll('subscriptions'))
+            .find(el => el.namespaceURI === MUC_SUB_FEATURE_ID)
+            ?.querySelectorAll('subscription'))
             ?.map(subscriptionElement => {
-                const subscribedEvents: string[] = subscriptionElement
-                    .getChildren('event')
-                    ?.map(eventElement => eventElement.attrs.node) ?? [];
-                return [subscriptionElement.attrs.jid as string, subscribedEvents] as const;
+                const subscribedEvents: string[] = Array.from(subscriptionElement
+                    .querySelectorAll('event'))
+                    ?.map(eventElement => eventElement.getAttribute('node')) ?? [];
+                return [subscriptionElement.getAttribute('jid'), subscribedEvents] as const;
             });
 
         return new Map(mapped);
@@ -389,7 +389,7 @@ export class JSXCXmppChatService implements ChatService {
         const jsxcRoomSummaries = await this.currentUserAccountWrapper.innerAccount.getConnection().getMUCService.queryAllRooms(serverJid);
         return jsxcRoomSummaries.map(summary => {
             return {
-                roomInfo: parseForm(toLtxElement(summary.roomInfo.toXML())),
+                roomInfo: parseForm(summary.roomInfo.toXML()),
                 jid: jid(summary.jid.toString()),
                 name: summary.name
             };

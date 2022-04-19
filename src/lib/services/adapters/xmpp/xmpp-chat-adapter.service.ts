@@ -28,7 +28,7 @@ import {MessageArchivePlugin} from './plugins/message-archive.plugin';
 import {MessagePlugin} from './plugins/message.plugin';
 import {MultiUserChatPlugin} from './plugins/multi-user-chat/multi-user-chat.plugin';
 import {RosterPlugin} from './plugins/roster.plugin';
-import {XmppChatConnectionService, XmppChatStates} from './xmpp-chat-connection.service';
+import {ChatConnectionService, ChatStates} from './chat-connection.service';
 import {XmppHttpFileUploadPlugin} from './plugins/xmpp-http-file-upload.plugin';
 import {JID} from '@xmpp/jid';
 import {MucSubPlugin} from './plugins/muc-sub.plugin';
@@ -111,7 +111,7 @@ export class XmppChatAdapter implements ChatService {
     private readonly currentLoggedInUserJidSubject = new BehaviorSubject<string>(null);
 
     constructor(
-        public chatConnectionService: XmppChatConnectionService,
+        public chatConnectionService: ChatConnectionService,
         private logService: LogService,
         private contactFactory: ContactFactoryService,
     ) {
@@ -143,27 +143,27 @@ export class XmppChatAdapter implements ChatService {
         await this.getPlugin(BlockPlugin).unblockJid(bareJid);
     }
 
-    joinRoom(jid: JID): Promise<Room> {
-        return this.getPlugin(MultiUserChatPlugin).joinRoom(jid);
+    async joinRoom(jid: JID): Promise<Room> {
+        return await this.getPlugin(MultiUserChatPlugin).joinRoom(jid);
     }
 
-    declineRoomInvite(jid: JID): void {
-        this.getPlugin(MultiUserChatPlugin).declineRoomInvite(jid).then();
+    async declineRoomInvite(jid: JID): Promise<void> {
+        await this.getPlugin(MultiUserChatPlugin).declineRoomInvite(jid);
     }
 
-    queryRoomUserList(roomJid: JID): Promise<RoomUser[]> {
-        return this.getPlugin(MultiUserChatPlugin).queryUserList(roomJid);
+    async queryRoomUserList(roomJid: JID): Promise<RoomUser[]> {
+        return await this.getPlugin(MultiUserChatPlugin).queryUserList(roomJid);
     }
 
-    getRoomConfiguration(roomJid: JID): Promise<Form> {
-        return this.getPlugin(MultiUserChatPlugin).getRoomConfiguration(roomJid);
+    async getRoomConfiguration(roomJid: JID): Promise<Form> {
+        return await this.getPlugin(MultiUserChatPlugin).getRoomConfiguration(roomJid);
     }
 
-    loadMostRecentUnloadedMessages(recipient: Recipient) {
-        return this.getPlugin(MessageArchivePlugin).loadMostRecentUnloadedMessages(recipient);
+    async loadMostRecentUnloadedMessages(recipient: Recipient) {
+        return await this.getPlugin(MessageArchivePlugin).loadMostRecentUnloadedMessages(recipient);
     }
 
-    getContactMessageState(message: Message, contactJid: string) {
+    getContactMessageState(message: Message, contactJid: string): MessageState {
         const states = this.getPlugin(MessageStatePlugin).getContactMessageState(contactJid);
         const date = message.datetime;
 
@@ -177,13 +177,13 @@ export class XmppChatAdapter implements ChatService {
         return MessageState.UNKNOWN;
     }
 
-    private handleInternalStateChange(newState: XmppChatStates) {
+    private handleInternalStateChange(newState: ChatStates) {
         if (newState === 'online') {
             this.state$.next('connecting');
             Promise
                 .all(this.plugins.map(plugin => plugin.onBeforeOnline()))
                 .catch((e) => this.logService.error('error while connecting', e))
-                .finally(() => this.announceAvailability());
+                .finally(async () => await this.announceAvailability());
         } else {
             if (this.state$.getValue() === 'online') {
                 // clear data the first time we transition to a not-online state
@@ -204,9 +204,9 @@ export class XmppChatAdapter implements ChatService {
         });
     }
 
-    private announceAvailability() {
+    private async announceAvailability() {
         this.logService.info('announcing availability');
-        this.chatConnectionService.sendPresence();
+        await this.chatConnectionService.$pres().send();
         this.state$.next('online');
     }
 
@@ -223,7 +223,7 @@ export class XmppChatAdapter implements ChatService {
         await this.getPlugin(RosterPlugin).refreshRosterContacts();
     }
 
-    getContactById(jidPlain: string): Promise<Contact> {
+    async getContactById(jidPlain: string): Promise<Contact> {
         return Promise.resolve(this.getContactByIdSync(jidPlain));
     }
 
@@ -246,14 +246,12 @@ export class XmppChatAdapter implements ChatService {
         return contact;
     }
 
-    addContact(identifier: string) {
-        this.getPlugin(RosterPlugin).addRosterContact(identifier);
-        return Promise.resolve();
+    async addContact(identifier: string) {
+        await this.getPlugin(RosterPlugin).addRosterContact(identifier);
     }
 
-    removeContact(identifier: string) {
-        this.getPlugin(RosterPlugin).removeRosterContact(identifier);
-        return Promise.resolve();
+    async removeContact(identifier: string) {
+        await this.getPlugin(RosterPlugin).removeRosterContact(identifier);
     }
 
     async logIn(logInRequest: LogInRequest) {
@@ -265,9 +263,9 @@ export class XmppChatAdapter implements ChatService {
         }
     }
 
-    logOut(): Promise<void> {
-        this.currentLoggedInUserJidSubject.next(null)
-        return this.chatConnectionService.logOut();
+    async logOut(): Promise<void> {
+        await this.chatConnectionService.logOut();
+        this.currentLoggedInUserJidSubject.next(null);
     }
 
     async sendMessage(recipient: Recipient, body: string) {
@@ -280,7 +278,7 @@ export class XmppChatAdapter implements ChatService {
                 await this.getPlugin(MultiUserChatPlugin).sendMessage(recipient, trimmedBody);
                 break;
             case 'contact':
-                this.getPlugin(MessagePlugin).sendMessage(recipient, trimmedBody);
+                await this.getPlugin(MessagePlugin).sendMessage(recipient, trimmedBody);
                 this.messageSent$.next(recipient);
                 break;
             default:
@@ -288,17 +286,17 @@ export class XmppChatAdapter implements ChatService {
         }
     }
 
-    loadCompleteHistory() {
-        return this.getPlugin(MessageArchivePlugin).loadAllMessages();
+    async loadCompleteHistory() {
+        return await this.getPlugin(MessageArchivePlugin).loadAllMessages();
     }
 
-    reconnectSilently(): Promise<void> {
+    async reconnectSilently(): Promise<void> {
         this.chatConnectionService.reconnectSilently();
         return Promise.resolve();
     }
 
-    reconnect() {
-        return this.logIn(this.lastLogInRequest);
+    async reconnect() {
+        return await this.logIn(this.lastLogInRequest);
     }
 
     /**
@@ -314,13 +312,13 @@ export class XmppChatAdapter implements ChatService {
         throw new Error('plugin not found: ' + constructor);
     }
 
-    private onUnknownStanza(stanza: Stanza) {
+    private async onUnknownStanza(stanza: Stanza) {
 
         let handled = false;
 
         for (const plugin of this.plugins) {
             try {
-                if (plugin.handleStanza(stanza)) {
+                if (await plugin.registerHandler(stanza)) {
                     this.logService.debug(plugin.constructor.name, 'handled', stanza.toString());
                     handled = true;
                 }
@@ -335,9 +333,9 @@ export class XmppChatAdapter implements ChatService {
 
     }
 
-    register(user: { username: string, password: string, service: string, domain: string }): Promise<void> {
+    async register(user: { username: string, password: string, service: string, domain: string }): Promise<void> {
         const {username, password, service, domain} = user;
-        return this.getPlugin(RegistrationPlugin).register(username, password, service, domain);
+        return await this.getPlugin(RegistrationPlugin).register(username, password, service, domain);
     }
 
     async banUserForRoom(occupantJid: JID, roomJid: JID, reason?: string): Promise<void> {
@@ -364,24 +362,24 @@ export class XmppChatAdapter implements ChatService {
         await this.getPlugin(MultiUserChatPlugin).leaveRoom(occupantJid, status);
     }
 
-    retrieveSubscriptions(): Promise<Map<string, string[]>> {
-        return this.getPlugin(MucSubPlugin).retrieveSubscriptions();
+    async retrieveSubscriptions(): Promise<Map<string, string[]>> {
+        return await this.getPlugin(MucSubPlugin).retrieveSubscriptions();
     }
 
-    subscribeRoom(roomJid: string, nodes: string[]): Promise<void> {
-        return this.getPlugin(MucSubPlugin).subscribeRoom(roomJid, nodes);
+    async subscribeRoom(roomJid: string, nodes: string[]): Promise<void> {
+        return await this.getPlugin(MucSubPlugin).subscribeRoom(roomJid, nodes);
     }
 
-    unsubscribeRoom(roomJid: string): Promise<void> {
-        return this.getPlugin(MucSubPlugin).unsubscribeRoom(roomJid);
+    async unsubscribeRoom(roomJid: string): Promise<void> {
+        return await this.getPlugin(MucSubPlugin).unsubscribeRoom(roomJid);
     }
 
     async kickOccupant(nick: string, roomJid: JID, reason?: string): Promise<void> {
         await this.getPlugin(MultiUserChatPlugin).kickOccupant(nick, roomJid, reason);
     }
 
-    queryAllRooms(): Promise<RoomSummary[]> {
-        return this.getPlugin(MultiUserChatPlugin).queryAllRooms();
+    async queryAllRooms(): Promise<RoomSummary[]> {
+        return await this.getPlugin(MultiUserChatPlugin).queryAllRooms();
     }
 
     async changeRoomSubject(roomJid: JID, subject: string): Promise<void> {

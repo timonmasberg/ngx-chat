@@ -1,15 +1,15 @@
 import {Injectable, NgZone} from '@angular/core';
 import {Client, xml} from '@xmpp/client';
 import {JID} from '@xmpp/jid';
-import {Element} from 'ltx';
-import {BehaviorSubject, Subject} from 'rxjs';
+import {BehaviorSubject, combineLatest, Observable, Subject} from 'rxjs';
 import {LogInRequest} from '../../../core/log-in-request';
 import {IqResponseStanza, Stanza} from '../../../core/stanza';
 import {LogService} from '../log.service';
 import {XmppResponseError} from './xmpp-response.error';
 import {XmppClientFactoryService} from './xmpp-client-factory.service';
-
-export type XmppChatStates = 'disconnected' | 'online' | 'reconnecting';
+import {filter, first} from 'rxjs/operators';
+import {ChatConnectionService, ChatStates, ClientStatus} from './chat-connection.service';
+import {XmppClientStanzaBuilder} from './xmpp-client-stanza-builder';
 
 /**
  * Implementation of the XMPP specification according to RFC 6121.
@@ -18,29 +18,52 @@ export type XmppChatStates = 'disconnected' | 'online' | 'reconnecting';
  * @see https://xmpp.org/rfcs/rfc3921.html
  */
 @Injectable()
-export class XmppChatConnectionService {
+export class XmppChatConnectionService implements ChatConnectionService {
 
-    public readonly state$ = new BehaviorSubject<XmppChatStates>('disconnected');
-    public readonly stanzaUnknown$ = new Subject<Stanza>();
+    public readonly state$ = new BehaviorSubject<ChatStates>('disconnected');
+    public readonly stanzaUnknown$ = new Subject<Element>();
+    public readonly userJid$: Observable<string>;
 
-    /**
-     * User JID with resource, not bare.
-     */
-    public userJid?: JID;
+    private readonly userJidSubject = new Subject<string>();
     private requestId = new Date().getTime();
     private readonly stanzaResponseHandlers = new Map<string, [(stanza: Stanza) => void, (e: Error) => void]>();
-    public client?: Client;
+    private client?: Client;
+
+    private readonly sendStanzaSubject = new Subject<Stanza>();
+
+    private readonly afterReceiveMessageSubject = new Subject<void>();
+    readonly afterReceiveMessage$: Observable<void>;
+    private readonly afterSendMessageSubject = new Subject<void>();
+    readonly afterSendMessage$: Observable<void>;
+    private readonly beforeSendMessageSubject = new Subject<void>();
+    readonly beforeSendMessage$: Observable<void>;
+    readonly onBeforeOnlineHandlers: Array<() => Promise<void>> = [];
+    private readonly onOfflineSubject = new Subject<void>();
+    readonly onOffline$: Observable<void>;
 
     constructor(
         private readonly logService: LogService,
         private readonly ngZone: NgZone,
         private readonly xmppClientFactoryService: XmppClientFactoryService,
     ) {
+        combineLatest([this.state$, this.sendStanzaSubject.asObservable()])
+            .pipe(filter(([state]) => state === 'online'))
+            .subscribe(async ([, stanza]) => {
+                    this.logService.debug('>>>', stanza);
+                    await this.client.send(stanza);
+                }
+            );
+
+        this.userJid$ = this.userJidSubject.asObservable();
+        this.afterReceiveMessage$ = this.afterReceiveMessageSubject.asObservable();
+        this.afterSendMessage$ = this.afterSendMessageSubject.asObservable();
+        this.beforeSendMessage$ = this.beforeSendMessageSubject.asObservable();
+        this.onOffline$ = this.onOfflineSubject.asObservable();
     }
 
     public onOnline(jid: JID): void {
         this.logService.info('online =', 'online as', jid.toString());
-        this.userJid = jid;
+        this.userJidSubject.next(jid.toString());
         this.state$.next('online');
     }
 
@@ -50,28 +73,25 @@ export class XmppChatConnectionService {
     }
 
     public async sendPresence(): Promise<void> {
-        await this.send(
-            xml('presence'),
-        );
+        await this.send(xml('presence'));
     }
 
     public async send(content: any): Promise<void> {
-        this.logService.debug('>>>', content);
-        await this.client.send(content);
+        this.beforeSendMessageSubject.next();
+        this.sendStanzaSubject.next(content);
     }
 
-    public sendAwaitingResponse(request: Element): Promise<Stanza> {
+    public async sendAwaitingResponse(request: Element): Promise<Element> {
+        this.beforeSendMessageSubject.next();
+        const from = await this.userJid$.pipe(first()).toPromise();
         return new Promise((resolve, reject) => {
-            request.attrs = {
-                id: this.getNextRequestId(),
-                from: this.userJid.toString(),
-                ...request.attrs,
-            };
-            const {id} = request.attrs;
+            const id = this.getNextRequestId();
+            request.setAttribute('id', id);
+            request.setAttribute('from', from);
 
             this.stanzaResponseHandlers.set(id, [
                 (response) => {
-                    if (response.attrs.type === 'error') {
+                    if (response.getAttribute('type') === 'error') {
                         reject(new XmppResponseError(response));
                         return;
                     }
@@ -91,11 +111,12 @@ export class XmppChatConnectionService {
 
     public onStanzaReceived(stanza: Stanza): void {
         let handled = false;
+        this.afterReceiveMessageSubject.next();
 
-        const [handleResponse] = this.stanzaResponseHandlers.get(stanza.attrs.id) ?? [];
+        const [handleResponse] = this.stanzaResponseHandlers.get(stanza.getAttribute('id')) ?? [];
         if (handleResponse) {
             this.logService.debug('<<<', stanza.toString(), 'handled by response handler');
-            this.stanzaResponseHandlers.delete(stanza.attrs.id);
+            this.stanzaResponseHandlers.delete(stanza.getAttribute('id'));
             handleResponse(stanza);
             handled = true;
         }
@@ -106,7 +127,7 @@ export class XmppChatConnectionService {
     }
 
     public async sendIq(request: Element): Promise<IqResponseStanza<'result'>> {
-        const requestType: string | undefined = request.attrs.type;
+        const requestType: string | undefined = request.getAttribute('type');
         // see https://datatracker.ietf.org/doc/html/draft-ietf-xmpp-3920bis#section-8.2.3
         if (!requestType || (requestType !== 'get' && requestType !== 'set')) {
             const message = `iq stanza without type: ${request.toString()}`;
@@ -115,23 +136,27 @@ export class XmppChatConnectionService {
         }
 
         const response = await this.sendAwaitingResponse(request);
+        /*
         if (!this.isIqStanzaResponse(response)) {
-            throw new Error(`received unexpected stanza as iq response: type=${response.attrs.type}, stanza=${response.toString()}`);
-        }
+            const type = response.getAttribute('type');
+            throw new Error(`received unexpected stanza as iq response: type=${type}, stanza=${response.toString()}`);
+        }*/
         return response as IqResponseStanza<'result'>;
     }
 
     private isIqStanzaResponse(stanza: Stanza): stanza is IqResponseStanza {
-        const stanzaType = stanza.attrs.type;
-        return stanza.name === 'iq' && (stanzaType === 'result' || stanzaType === 'error');
+        const stanzaType = stanza.getAttribute('type');
+        return stanza.tagName === 'iq' && (stanzaType === 'result' || stanzaType === 'error');
     }
 
     public async sendIqAckResult(id: string): Promise<void> {
+        const from = await this.userJid$.pipe(first()).toPromise();
         await this.send(
-            xml('iq', {from: this.userJid.toString(), id, type: 'result'}),
+            xml('iq', {from, id, type: 'result'}),
         );
     }
 
+    /*** TODO: reuse client for same Domain **/
     async logIn(logInRequest: LogInRequest): Promise<void> {
         await this.ngZone.runOutsideAngular(async () => {
             if (logInRequest.username.indexOf('@') > -1) {
@@ -146,18 +171,30 @@ export class XmppChatConnectionService {
                 });
             });
 
-            this.client.on('status', (status: any, value: any) => {
-                this.ngZone.run(() => {
+            this.client.on('status', (status: ClientStatus, value: any) => {
+                this.ngZone.run(async () => {
                     this.logService.info('status update =', status, value ? JSON.stringify(value) : '');
-                    if (status === 'offline') {
-                        this.state$.next('disconnected');
-                    }
-                });
-            });
+                    switch (status) {
+                        case ClientStatus.online:
+                            this.onOnline(value);
+                            break;
+                        case ClientStatus.offline:
+                            this.state$.next('disconnected');
+                            this.onOffline();
+                            await this.logOut();
+                            break;
+                        case ClientStatus.connecting:
+                        case ClientStatus.connect:
+                        case ClientStatus.opening:
+                        case ClientStatus.open:
+                        case ClientStatus.closing:
+                        case ClientStatus.close:
+                        case ClientStatus.disconnecting:
+                        case ClientStatus.disconnect:
+                            this.state$.next('reconnecting');
+                            break;
 
-            this.client.on('online', (jid: JID) => {
-                return this.ngZone.run(() => {
-                    return this.onOnline(jid);
+                    }
                 });
             });
 
@@ -167,18 +204,6 @@ export class XmppChatConnectionService {
                         return;
                     }
                     this.onStanzaReceived(stanza);
-                });
-            });
-
-            this.client.on('disconnect', () => {
-                this.ngZone.run(() => {
-                    this.state$.next('reconnecting');
-                });
-            });
-
-            this.client.on('offline', () => {
-                this.ngZone.run(() => {
-                    this.onOffline();
                 });
             });
 
@@ -192,7 +217,7 @@ export class XmppChatConnectionService {
      */
     private skipXmppClientResponses(stanza: Stanza) {
         const xmppBindNS = 'urn:ietf:params:xml:ns:xmpp-bind';
-        return stanza.getChild('bind')?.getNS() === xmppBindNS;
+        return stanza.querySelector('bind')?.namespaceURI === xmppBindNS;
     }
 
     async logOut(): Promise<void> {
@@ -203,12 +228,12 @@ export class XmppChatConnectionService {
         this.logService.debug('logging out');
         try {
             await this.send(xml('presence', {type: 'unavailable'}));
+            this.state$.next('disconnected'); // after last send
             this.client.reconnect.stop();
         } catch (e) {
             this.logService.error('error sending presence unavailable');
         } finally {
             this.client.stop();
-            delete this.client;
         }
     }
 
@@ -219,5 +244,28 @@ export class XmppChatConnectionService {
     reconnectSilently(): void {
         this.logService.warn('hard reconnect...');
         this.state$.next('disconnected');
+        this.client.reconnect.reconnect();
+    }
+
+    $build(name: string, attrs?: any): XmppClientStanzaBuilder {
+        return new XmppClientStanzaBuilder(xml(name, attrs), () => this.getNextRequestId(), (element) => this.send(element), (element) => this.sendAwaitingResponse(element));
+    }
+
+    $iq(attrs?: any): XmppClientStanzaBuilder {
+        return this.$build('iq', attrs);
+    }
+
+    $msg(attrs?: any): XmppClientStanzaBuilder {
+        return this.$build('message', attrs);
+    }
+
+    $pres(attrs?: any): XmppClientStanzaBuilder {
+        return this.$build('presence', attrs);
+    }
+
+    addHandler(handler: (stanza: Element) => boolean, identifier?: { ns?: string; name?: string; type?: string; id?: string; from?: string }, options?: { matchBare: boolean }) {
+    }
+
+    registerForOnBeforeOnline(handler: () => Promise<void>) {
     }
 }
