@@ -1,28 +1,8 @@
-import { xml } from '@xmpp/client';
-import { Element } from 'ltx';
-import { BehaviorSubject } from 'rxjs';
-import { first } from 'rxjs/operators';
-import { AbstractStanzaBuilder } from '../abstract-stanza-builder';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-
-class QueryStanzaBuilder extends AbstractStanzaBuilder {
-
-    constructor(private xmlns: string, private to?: string) {
-        super();
-    }
-
-    toStanza() {
-        return xml('iq',
-            {
-                type: 'get',
-                ...(this.to ? {to: this.to} : {}),
-            },
-            xml('query', {xmlns: this.xmlns}),
-        );
-    }
-
-}
+import {BehaviorSubject} from 'rxjs';
+import {first} from 'rxjs/operators';
+import {XmppChatAdapter} from '../xmpp-chat-adapter.service';
+import {AbstractXmppPlugin} from './abstract-xmpp-plugin';
+import {ChatPlugin} from '../../../../core/plugin';
 
 export interface IdentityAttrs {
     category: string;
@@ -39,7 +19,7 @@ export interface Service {
 /**
  * see XEP-0030 Service Discovery
  */
-export class ServiceDiscoveryPlugin extends AbstractXmppPlugin {
+export class ServiceDiscoveryPlugin implements ChatPlugin {
 
     public static readonly DISCO_INFO = 'http://jabber.org/protocol/disco#info';
     public static readonly DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
@@ -53,7 +33,7 @@ export class ServiceDiscoveryPlugin extends AbstractXmppPlugin {
     }
 
     async onBeforeOnline(): Promise<void> {
-        await this.discoverServices(this.chatAdapter.chatConnectionService.userJid.domain);
+        await this.discoverServices(await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise());
         this.servicesInitialized$.next(true);
     }
 
@@ -63,7 +43,7 @@ export class ServiceDiscoveryPlugin extends AbstractXmppPlugin {
         this.resourceCache.clear();
     }
 
-    supportsFeature(jid: string, searchedFeature: string): Promise<boolean> {
+    async supportsFeature(jid: string, searchedFeature: string): Promise<boolean> {
 
         return new Promise((resolve, reject) => {
 
@@ -83,7 +63,7 @@ export class ServiceDiscoveryPlugin extends AbstractXmppPlugin {
 
     }
 
-    findService(category: string, type: string): Promise<Service> {
+    async findService(category: string, type: string): Promise<Service> {
 
         return new Promise((resolve, reject) => {
 
@@ -107,16 +87,14 @@ export class ServiceDiscoveryPlugin extends AbstractXmppPlugin {
     }
 
     private async discoverServices(mainDomain: string): Promise<void> {
-        const serviceListResponse = await this.chatAdapter.chatConnectionService.sendIq(
-            new QueryStanzaBuilder(
-                ServiceDiscoveryPlugin.DISCO_ITEMS, this.chatAdapter.chatConnectionService.userJid.domain).toStanza(),
-        );
+        const to = await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
+        const serviceListResponse = await this.sendDiscoQuery(ServiceDiscoveryPlugin.DISCO_ITEMS, to);
 
         const serviceDomains = new Set(
-            serviceListResponse
-                .getChild('query')
-                .getChildren('item')
-                .map((itemNode: Element) => itemNode.attrs.jid as string),
+            Array.from(serviceListResponse
+                .querySelector('query')
+                .querySelectorAll('item')
+            ).map((itemNode: Element) => itemNode.getAttribute('jid')),
         );
         serviceDomains.add(mainDomain);
 
@@ -128,24 +106,31 @@ export class ServiceDiscoveryPlugin extends AbstractXmppPlugin {
     }
 
     private async discoverServiceInformation(serviceDomain: string): Promise<Service> {
-        const serviceInformationResponse = await this.chatAdapter.chatConnectionService.sendIq(
-            new QueryStanzaBuilder(ServiceDiscoveryPlugin.DISCO_INFO, serviceDomain).toStanza(),
-        );
+        const serviceInformationResponse = await this.sendDiscoQuery(ServiceDiscoveryPlugin.DISCO_INFO, serviceDomain);
 
-        const queryNode = serviceInformationResponse.getChild('query');
-        const features = queryNode.getChildren('feature').map((featureNode: Element) => featureNode.attrs.var);
-        const identitiesAttrs = queryNode
-            .getChildren('identity')
-            .filter((identityNode: Element) => identityNode.attrs)
-            .map((identityNode: Element) => identityNode.attrs);
+        const queryNode = serviceInformationResponse.querySelector('query');
+        const features = Array.from(queryNode.querySelectorAll('feature')).map((featureNode: Element) => featureNode.getAttribute('var'));
+        const identitiesAttrs = Array.from(queryNode
+            .querySelectorAll('identity'))
+            .filter((identityNode: Element) => identityNode.getAttributeNames().length > 0)
+            .map((identityNode: Element) => identityNode.getAttributeNames()
+                .reduce((acc, name) => ({...acc, [name]: identityNode.getAttribute(name)}), {}));
 
+        const from = serviceInformationResponse.getAttribute('from');
         const serviceInformation: Service = {
             identitiesAttrs: this.isIdentitiesAttrs(identitiesAttrs) ? identitiesAttrs : [],
             features,
-            jid: serviceInformationResponse.attrs.from,
+            jid: from,
         };
-        this.resourceCache.set(serviceInformationResponse.attrs.from, serviceInformation);
+        this.resourceCache.set(from, serviceInformation);
         return serviceInformation;
+    }
+
+    private async sendDiscoQuery(xmlns: string, to?: string): Promise<Element> {
+        return await this.chatAdapter.chatConnectionService
+            .$iq({type: 'get', ...(to ? {to} : {})})
+            .c('query', {xmlns: xmlns})
+            .sendAwaitingResponse();
     }
 
     private isIdentitiesAttrs(elements: { [attrName: string]: any }[]): elements is IdentityAttrs[] {
