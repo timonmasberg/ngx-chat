@@ -3,9 +3,9 @@ import {Component, Inject, Input, OnInit, Optional} from '@angular/core';
 import {Contact} from '../../core/contact';
 import {Direction, Message, MessageState} from '../../core/message';
 import {extractUrls} from '../../core/utils-links';
-import {XmppChatAdapter} from '../../services/adapters/xmpp/xmpp-chat-adapter.service';
+import {XmppChatAdapter} from '../../services/adapters/xmpp-chat-adapter.service';
 import {ChatContactClickHandler, CONTACT_CLICK_HANDLER_TOKEN} from '../../hooks/chat-contact-click-handler';
-import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/adapters/xmpp/interface/chat.service';
 
 export const MAX_IMAGE_SIZE = 250 * 1024;
 

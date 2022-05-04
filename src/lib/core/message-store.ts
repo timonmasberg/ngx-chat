@@ -1,5 +1,5 @@
 import { Subject } from 'rxjs';
-import { LogService } from '../services/adapters/log.service';
+import { LogService } from '../services/adapters/xmpp/service/log.service';
 import { Direction, Message } from './message';
 import { findLast, findSortedIndex, findSortedInsertionIndexLast, insertSortedLast } from './utils-array';
 import { extractDateStringFromDate } from './utils-date';

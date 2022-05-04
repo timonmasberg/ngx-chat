@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { Contact } from '../core/contact';
 import { Translations } from '../core/translations';
 import { defaultTranslations } from '../core/translations-default';
-import { CHAT_SERVICE_TOKEN, ChatService } from '../services/chat-service';
+import { CHAT_SERVICE_TOKEN, ChatService } from '../services/adapters/xmpp/interface/chat.service';
 
 /**
  * The main UI component. Should be instantiated near the root of your application.

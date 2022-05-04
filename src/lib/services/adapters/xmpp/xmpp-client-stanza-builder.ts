@@ -1,9 +1,9 @@
-import {Builder} from './chat-connection.service';
-import {Element as LtxElement} from 'ltx';
+import {Element as XmppElement} from '@xmpp/xml';
+import {Builder} from './interface/builder';
 
 export class XmppClientStanzaBuilder implements Builder {
     constructor(
-        private element: LtxElement,
+        private element: XmppElement,
         private readonly getNextId: () => string,
         private readonly sendInner: (content: Element) => Promise<void>,
         private readonly sendInnerAwaitingResponse: (content: Element) => Promise<Element>,
@@ -66,18 +66,18 @@ export class XmppClientStanzaBuilder implements Builder {
 }
 
 
-function toXMLElement(ltxElement: LtxElement): Element {
+function toXMLElement(ltxElement: XmppElement): Element {
     const parser = new globalThis.DOMParser();
     return parser.parseFromString(ltxElement.toString(), 'text/xml').documentElement;
 }
 
-function toLtxElement(element: Element): LtxElement {
+function toLtxElement(element: Element): XmppElement {
     const attributes = element.getAttributeNames().reduce<Record<string, unknown>>((collection, attributeName) => {
         collection[attributeName] = element.getAttribute(attributeName);
         return collection;
     }, {});
 
-    const ltxRoot = new LtxElement(element.nodeName, attributes);
+    const ltxRoot = new XmppElement(element.nodeName, attributes);
     ltxRoot.children = Array.from(element.children).map(el => toLtxElement(el));
     return ltxRoot;
 }

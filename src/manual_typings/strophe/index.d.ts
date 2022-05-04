@@ -6,53 +6,53 @@
 // TypeScript Version: 3.2
 export {};
 
-/** Function: $build
- *  Create a Strophe.Builder.
- *  This is an alias for 'new Strophe.Builder(name, attrs)'.
- *
- *  Parameters:
- *    @param name - The root element name.
- *    @param attrs - The attributes for the root element in object notation.
- *
- *  Returns:
- *    @returns A new Strophe.Builder object.
- */
-export function $build(name: string, attrs?: Record<string, string>): globalThis.Strophe.Builder;
-
-/** Function: $msg
- *  Create a Strophe.Builder with a <message/> element as the root.
- *
- *  Parameters:
- *    @param attrs - The <message/> element attributes in object notation.
- *
- *  Returns:
- *    @returns A new Strophe.Builder object.
- */
-export function $msg(attrs?: Record<string, string>): globalThis.Strophe.Builder;
-
-/** Function: $iq
- *  Create a Strophe.Builder with an <iq/> element as the root.
- *
- *  Parameters:
- *    @param attrs - The <iq/> element attributes in object notation.
- *
- *  Returns:
- *    @returns A new Strophe.Builder object.
- */
-export function $iq(attrs?: Record<string, string>): globalThis.Strophe.Builder;
-
-/** Function: $pres
- *  Create a Strophe.Builder with a <presence/> element as the root.
- *
- *  Parameters:
- *    @param attrs - The <presence/> element attributes in object notation.
- *
- *  Returns:
- *    @returns A new Strophe.Builder object.
- */
-export function $pres(attrs?: Record<string, string>): globalThis.Strophe.Builder;
-
 declare global {
+
+    /** Function: $build
+     *  Create a Strophe.Builder.
+     *  This is an alias for 'new Strophe.Builder(name, attrs)'.
+     *
+     *  Parameters:
+     *    @param name - The root element name.
+     *    @param attrs - The attributes for the root element in object notation.
+     *
+     *  Returns:
+     *    @returns A new Strophe.Builder object.
+     */
+    function $build(name: string, attrs?: Record<string, string>): globalThis.Strophe.Builder;
+
+    /** Function: $msg
+     *  Create a Strophe.Builder with a <message/> element as the root.
+     *
+     *  Parameters:
+     *    @param attrs - The <message/> element attributes in object notation.
+     *
+     *  Returns:
+     *    @returns A new Strophe.Builder object.
+     */
+    function $msg(attrs?: Record<string, string>): globalThis.Strophe.Builder;
+
+    /** Function: $iq
+     *  Create a Strophe.Builder with an <iq/> element as the root.
+     *
+     *  Parameters:
+     *    @param attrs - The <iq/> element attributes in object notation.
+     *
+     *  Returns:
+     *    @returns A new Strophe.Builder object.
+     */
+    function $iq(attrs?: Record<string, string>): globalThis.Strophe.Builder;
+
+    /** Function: $pres
+     *  Create a Strophe.Builder with a <presence/> element as the root.
+     *
+     *  Parameters:
+     *    @param attrs - The <presence/> element attributes in object notation.
+     *
+     *  Returns:
+     *    @returns A new Strophe.Builder object.
+     */
+    function $pres(attrs?: Record<string, string>): globalThis.Strophe.Builder;
 
     namespace Strophe {
         /** Constant: VERSION
@@ -1106,6 +1106,8 @@ declare global {
 
             servtype: string;
 
+            mock: boolean;
+
             /** Constructor: Strophe.Connection
              *  Create and initialize a Strophe.Connection object.
              *
@@ -1664,7 +1666,7 @@ declare global {
              *  Parameters:
              *    @param handler - The user callback.
              *    @param ns - The namespace to match.
-             *    @param name - The stanza name to match.
+             *    @param name - The stanza tag name to match.
              *    @param type - The stanza type (or types if an array) to match.
              *    @param id - The stanza id attribute to match.
              *    @param from - The stanza from attribute to match.
@@ -1779,6 +1781,31 @@ declare global {
              *  Select protocol based on this.options or this.service
              */
             setProtocol(): void;
+
+            /** PrivateFunction: _onDisconnectTimeout
+             *  _Private_ timeout handler for handling non-graceful disconnection.
+             *
+             *  If the graceful disconnect process does not complete within the
+             *  time allotted, this handler finishes the disconnect anyway.
+             *
+             *  Returns:
+             *    false to remove the handler.
+             */
+            _onDisconnectTimeout(): void;
+
+            /** PrivateFunction: _changeConnectStatus
+             *  _Private_ helper function that makes sure plugins and the user's
+             *  callback are notified of connection status changes.
+             *
+             *  Parameters:
+             *    @param status - the new connection status, one of the values
+             *      in Strophe.Status
+             *    @param condition - the error condition or null
+             *    @param elem - The triggering stanza.
+             */
+            _changeConnectStatus(status: number, condition?: string, elem?: Element)
+
+            _dataRecv(data, req);
         }
 
         /** Class: Strophe.WebSocket

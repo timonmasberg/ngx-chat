@@ -1,4 +1,4 @@
-import {Builder} from '../services/adapters/xmpp/chat-connection.service';
+import {Builder} from '../services/adapters/xmpp/interface/builder';
 
 // implements https://xmpp.org/extensions/xep-0004.html
 

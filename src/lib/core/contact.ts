@@ -1,13 +1,13 @@
-import { jid as parseJid } from '@xmpp/client';
-import { JID } from '@xmpp/jid';
-import { BehaviorSubject, Subject } from 'rxjs';
-import { LogService } from '../services/adapters/log.service';
-import { dummyAvatarContact } from './contact-avatar';
-import { Message } from './message';
-import { DateMessagesGroup, MessageStore } from './message-store';
-import { Presence } from './presence';
-import { isJid, Recipient } from './recipient';
-import { ContactSubscription } from './subscription';
+import {jid as parseJid} from '@xmpp/client';
+import {JID} from '@xmpp/jid';
+import {BehaviorSubject, Subject} from 'rxjs';
+import {LogService} from '../services/adapters/xmpp/service/log.service';
+import {dummyAvatarContact} from './contact-avatar';
+import {Message} from './message';
+import {DateMessagesGroup, MessageStore} from './message-store';
+import {Presence} from './presence';
+import {isJid, Recipient} from './recipient';
+import {ContactSubscription} from './subscription';
 
 export interface Invitation {
     from: JID;
@@ -39,6 +39,8 @@ export class Contact {
     readonly pendingRoomInvite$ = new BehaviorSubject<null | Invitation>(null);
 
     private readonly messageStore: MessageStore<Message>;
+    // TODO WHAT?? Status vs Presence vs Resource
+    private status: string;
 
     get messages$(): Subject<Message> {
         return this.messageStore.messages$;
@@ -110,6 +112,10 @@ export class Contact {
         resources.set(jid, presence);
         this.presence$.next(this.determineOverallPresence(resources));
         this.resources$.next(resources);
+    }
+
+    setStatus(status: string) {
+        this.status = status;
     }
 
     getMessageById(id: string): Message | null {

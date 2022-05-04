@@ -1,10 +1,11 @@
-import { xml } from '@xmpp/client';
-import { BehaviorSubject, of } from 'rxjs';
-import { catchError, first, mergeMap, map, timeout } from 'rxjs/operators';
-import { LogService } from '../../log.service';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
+import {BehaviorSubject, of} from 'rxjs';
+import {catchError, first, map, mergeMap, timeout} from 'rxjs/operators';
+import {LogService} from '../service/log.service';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
+import {ServiceDiscoveryPlugin} from './service-discovery.plugin';
+import {ChatPlugin} from '../../../../core/plugin';
+import {ChatConnection} from '../interface/chat-connection';
+import {Finder} from '../shared/finder';
 
 export interface TimeReference {
     utcTimestamp: number;
@@ -14,11 +15,13 @@ export interface TimeReference {
     localReference: number;
 }
 
+const nsTime = 'urn:xmpp:time';
+
 /**
  * Request time of entities via XEP-0202.
  */
-export class EntityTimePlugin extends AbstractXmppPlugin {
-
+export class EntityTimePlugin implements ChatPlugin {
+    nameSpace = nsTime;
     private serverSupportsTime$ = new BehaviorSubject<boolean | 'unknown'>('unknown');
     private serverTime$ = new BehaviorSubject<TimeReference | null>(null);
 
@@ -27,21 +30,20 @@ export class EntityTimePlugin extends AbstractXmppPlugin {
         private serviceDiscoveryPlugin: ServiceDiscoveryPlugin,
         private logService: LogService,
     ) {
-        super();
     }
 
     async onBeforeOnline(): Promise<void> {
-        const serverSupportsTimeRequest = await this.serviceDiscoveryPlugin.supportsFeature(
-            this.xmppChatAdapter.chatConnectionService.userJid.domain,
-            'urn:xmpp:time',
-        );
-        if (serverSupportsTimeRequest) {
-            const sharedUtcTimeStamp = await this.requestTime(this.xmppChatAdapter.chatConnectionService.userJid.domain);
-            this.serverTime$.next(sharedUtcTimeStamp);
-            this.serverSupportsTime$.next(true);
-        } else {
+        const jid = await this.xmppChatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
+        const domain = jid.split('@')[0];
+        const serverSupportsTimeRequest = await this.serviceDiscoveryPlugin.supportsFeature(domain, this.nameSpace);
+        if (!serverSupportsTimeRequest) {
             this.serverSupportsTime$.next(false);
+            return;
         }
+
+        const sharedUtcTimeStamp = await this.requestTime(domain);
+        this.serverTime$.next(sharedUtcTimeStamp);
+        this.serverSupportsTime$.next(true);
     }
 
     onOffline() {
@@ -67,18 +69,28 @@ export class EntityTimePlugin extends AbstractXmppPlugin {
     }
 
     async requestTime(jid: string): Promise<TimeReference> {
-        const response = await this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'get', to: jid},
-                xml('time', {xmlns: 'urn:xmpp:time'}),
-            ),
-        );
-        const utcString = response.getChild('time', 'urn:xmpp:time')?.getChildText('utc');
+        const response = await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'get', to: jid})
+            .c('time', {xmlns: this.nameSpace})
+            .sendAwaitingResponse();
+        const utcString = Finder
+            .create(response)
+            .searchByTag('time')
+            .searchByNamespace(this.nameSpace)
+            .searchByTag('utc')
+            .result
+            .textContent;
+
         if (!utcString) {
             const message = 'invalid time response';
             this.logService.error(message, response.toString());
             throw new Error(message);
         }
+
         return {utcTimestamp: Date.parse(utcString), localReference: performance.now()};
     }
 
+    registerHandler(connection: ChatConnection): Promise<void> {
+        return Promise.resolve(undefined);
+    }
 }

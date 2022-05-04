@@ -1,24 +1,31 @@
-import { xml } from '@xmpp/client';
-import { Element } from 'ltx';
-import { id } from '../../../../core/id-generator';
-import { Message } from '../../../../core/message';
-import { MessageWithBodyStanza } from '../../../../core/stanza';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
+import {id} from '../../../../core/id-generator';
+import {Message} from '../../../../core/message';
+import {MessageWithBodyStanza} from '../../../../core/stanza';
+import {ChatPlugin} from '../../../../core/plugin';
+
+const nsSID = 'urn:xmpp:sid:0';
 
 /**
  * https://xmpp.org/extensions/xep-0359.html
  */
-export class MessageUuidPlugin extends AbstractXmppPlugin {
+export class MessageUuidPlugin implements ChatPlugin {
+
+    readonly nameSpace = nsSID;
 
     public static extractIdFromStanza(messageStanza: Element) {
-        const originIdElement = messageStanza.getChild('origin-id');
-        const stanzaIdElement = messageStanza.getChild('stanza-id');
-        return messageStanza.attrs.id || (originIdElement && originIdElement.attrs.id) || (stanzaIdElement && stanzaIdElement.attrs.id);
+        const originIdElement = messageStanza.querySelector('origin-id');
+        const stanzaIdElement = messageStanza.querySelector('stanza-id');
+        return messageStanza.getAttribute('id')
+            || (originIdElement && originIdElement.getAttribute('id'))
+            || (stanzaIdElement && stanzaIdElement.getAttribute('id'));
     }
 
     beforeSendMessage(messageStanza: Element, message: Message): void {
         const generatedId = id();
-        messageStanza.children.push(xml('origin-id', {xmlns: 'urn:xmpp:sid:0', id: generatedId}));
+        const element = document.createElement('origin-id');
+        element.setAttribute('xmlns', this.nameSpace);
+        element.setAttribute('id', generatedId);
+        messageStanza.append(element);
         if (message) {
             message.id = generatedId;
         }

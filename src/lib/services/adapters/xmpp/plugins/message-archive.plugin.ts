@@ -1,25 +1,26 @@
-import { xml } from '@xmpp/client';
-import { Element } from 'ltx';
-import { Subject } from 'rxjs';
-import { debounceTime, filter } from 'rxjs/operators';
-import { Recipient } from '../../../../core/recipient';
-import { Stanza } from '../../../../core/stanza';
-import { LogService } from '../../log.service';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { MultiUserChatPlugin } from './multi-user-chat/multi-user-chat.plugin';
-import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
-import { PUBSUB_EVENT_XMLNS } from './publish-subscribe.plugin';
-import { MessagePlugin } from './message.plugin';
-import { Form, serializeToSubmitForm } from '../../../../core/form';
-import { MUC_SUB_EVENT_TYPE } from '../../../chat-service';
+import {Subject} from 'rxjs';
+import {debounceTime, filter} from 'rxjs/operators';
+import {Recipient} from '../../../../core/recipient';
+import {Stanza} from '../../../../core/stanza';
+import {LogService} from '../service/log.service';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
+import {MultiUserChatPlugin, nsRSM} from './multi-user-chat/multi-user-chat.plugin';
+import {ServiceDiscoveryPlugin} from './service-discovery.plugin';
+import {nsPubSubEvent} from './publish-subscribe.plugin';
+import {MessagePlugin} from './message.plugin';
+import {Form, serializeToSubmitForm} from '../../../../core/form';
+import {MUC_SUB_EVENT_TYPE} from '../interface/chat.service';
+import {ChatPlugin} from '../../../../core/plugin';
+import {Finder} from '../shared/finder';
+
+const nsMAM = 'urn:xmpp:mam:2';
 
 /**
  * https://xmpp.org/extensions/xep-0313.html
  * Message Archive Management
  */
-export class MessageArchivePlugin extends AbstractXmppPlugin {
-    static readonly MAM_NS = 'urn:xmpp:mam:2';
+export class MessageArchivePlugin implements ChatPlugin {
+    readonly nameSpace = nsMAM;
 
     private readonly mamMessageReceived$ = new Subject<void>();
 
@@ -30,15 +31,9 @@ export class MessageArchivePlugin extends AbstractXmppPlugin {
         private readonly logService: LogService,
         private readonly messagePlugin: MessagePlugin,
     ) {
-        super();
-
         this.chatService.state$
             .pipe(filter(state => state === 'online'))
-            .subscribe(async () => {
-                if (await this.supportsMessageArchiveManagement()) {
-                    await this.requestNewestMessages();
-                }
-            });
+            .subscribe(async () => await this.requestNewestMessages());
 
         // emit contacts to refresh contact list after receiving mam messages
         this.mamMessageReceived$
@@ -47,16 +42,12 @@ export class MessageArchivePlugin extends AbstractXmppPlugin {
     }
 
     private async requestNewestMessages(): Promise<void> {
-        await this.chatService.chatConnectionService.sendIq(
-            xml('iq', {type: 'set'},
-                xml('query', {xmlns: MessageArchivePlugin.MAM_NS},
-                    xml('set', {xmlns: 'http://jabber.org/protocol/rsm'},
-                        xml('max', {}, 250),
-                        xml('before'),
-                    ),
-                ),
-            ),
-        );
+        await this.chatService.chatConnectionService.$iq({type: 'set'})
+            .c('query', {xmlns: this.nameSpace})
+            .c('set', {xmlns: nsRSM})
+            .c('max', {}, '250')
+            .up().c('before')
+            .send();
     }
 
     async loadMostRecentUnloadedMessages(recipient: Recipient): Promise<void> {
@@ -67,9 +58,9 @@ export class MessageArchivePlugin extends AbstractXmppPlugin {
             type: 'submit',
             instructions: [],
             fields: [
-                {type: 'hidden', variable: 'FORM_TYPE', value: MessageArchivePlugin.MAM_NS},
+                {type: 'hidden', variable: 'FORM_TYPE', value: this.nameSpace},
                 ...(recipient.recipientType === 'contact'
-                    ? [{type: 'jid-single', variable: 'with', value: recipient.jidBare}] as const
+                    ? [{type: 'jid-single', variable: 'with', value: recipient.jidBare.toString()}] as const
                     : []),
                 ...(recipient.oldestMessage
                     ? [{type: 'text-single', variable: 'end', value: recipient.oldestMessage.datetime.toISOString()}] as const
@@ -77,58 +68,34 @@ export class MessageArchivePlugin extends AbstractXmppPlugin {
             ],
         };
 
-        const request =
-            xml('iq', {type: 'set', to},
-                xml('query', {xmlns: MessageArchivePlugin.MAM_NS},
-                    serializeToSubmitForm(form),
-                    xml('set', {xmlns: 'http://jabber.org/protocol/rsm'},
-                        xml('max', {}, 100),
-                        xml('before'),
-                    ),
-                ),
-            );
-
-        await this.chatService.chatConnectionService.sendIq(request);
+        await this.chatService.chatConnectionService
+            .$iq({type: 'set', to})
+            .c('query', {xmlns: this.nameSpace})
+            .cCreateMethod(builder => serializeToSubmitForm(builder, form))
+            .c('set', {xmlns: nsRSM})
+            .c('max', {}, '100')
+            .up().c('before').send();
     }
 
     async loadAllMessages(): Promise<void> {
-        if (!(await this.supportsMessageArchiveManagement())) {
-            throw new Error('message archive management not suppported');
-        }
+        let lastMamResponse = await this.chatService.chatConnectionService
+            .$iq({type: 'set'})
+            .c('query', {xmlns: this.nameSpace})
+            .sendAwaitingResponse();
 
-        let lastMamResponse = await this.chatService.chatConnectionService.sendIq(
-            xml('iq', {type: 'set'},
-                xml('query', {xmlns: MessageArchivePlugin.MAM_NS}),
-            ),
-        );
-
-        while (lastMamResponse.getChild('fin').attrs.complete !== 'true') {
-            const lastReceivedMessageId = lastMamResponse.getChild('fin').getChild('set').getChildText('last');
-            lastMamResponse = await this.chatService.chatConnectionService.sendIq(
-                xml('iq', {type: 'set'},
-                    xml('query', {xmlns: MessageArchivePlugin.MAM_NS},
-                        xml('set', {xmlns: 'http://jabber.org/protocol/rsm'},
-                            xml('max', {}, 250),
-                            xml('after', {}, lastReceivedMessageId),
-                        ),
-                    ),
-                ),
-            );
+        while (lastMamResponse.querySelector('fin').getAttribute('complete') !== 'true') {
+            const lastReceivedMessageId = lastMamResponse.querySelector('fin').querySelector('set').querySelector('last').textContent;
+            lastMamResponse = await this.chatService.chatConnectionService
+                .$iq({type: 'set'})
+                .c('query', {xmlns: this.nameSpace})
+                .c('set', {xmlns: nsRSM})
+                .c('max', {}, '250')
+                .up().c('after', {}, lastReceivedMessageId)
+                .sendAwaitingResponse();
         }
     }
 
-    private async supportsMessageArchiveManagement(): Promise<boolean> {
-        const supportsMessageArchiveManagement = await this.serviceDiscoveryPlugin.supportsFeature(
-            this.chatService.chatConnectionService.userJid.bare().toString(),
-            MessageArchivePlugin.MAM_NS,
-        );
-        if (!supportsMessageArchiveManagement) {
-            this.logService.info('server doesn\'t support MAM');
-        }
-        return supportsMessageArchiveManagement;
-    }
-
-    handleStanza(stanza: Stanza): boolean {
+    async registerHandler(stanza: Stanza): Promise<boolean> {
         if (this.isMamMessageStanza(stanza)) {
             this.handleMamMessageStanza(stanza);
             return true;
@@ -137,47 +104,47 @@ export class MessageArchivePlugin extends AbstractXmppPlugin {
     }
 
     private isMamMessageStanza(stanza: Stanza): boolean {
-        const result = stanza.getChild('result');
-        return stanza.name === 'message' && result?.attrs.xmlns === MessageArchivePlugin.MAM_NS;
+        const result = stanza.querySelector('result');
+        return stanza.tagName === 'message' && result?.getAttribute('xmlns') === this.nameSpace;
     }
 
     private handleMamMessageStanza(stanza: Stanza): void {
-        const forwardedElement = stanza.getChild('result').getChild('forwarded');
-        const messageElement = forwardedElement.getChild('message');
-        const delayElement = forwardedElement.getChild('delay');
+        const forwardedElement = Finder.create(stanza).searchByTag('result').searchByTag('forwarded');
+        const messageElement = forwardedElement.searchByTag('message');
+        const delayElement = forwardedElement.searchByTag('delay');
 
-        const eventElement = messageElement.getChild('event', PUBSUB_EVENT_XMLNS);
-        if (messageElement.getAttr('type') == null && eventElement != null) {
-            this.handlePubSubEvent(eventElement, delayElement);
+        const eventElement = messageElement.searchByTag('event').searchByNamespace(nsPubSubEvent);
+        if (messageElement.result.getAttribute('type') == null && eventElement != null) {
+            this.handlePubSubEvent(eventElement.result, delayElement.result);
         } else {
-            this.handleArchivedMessage(messageElement, delayElement);
+            this.handleArchivedMessage(messageElement.result, delayElement.result);
         }
     }
 
     private handleArchivedMessage(messageElement: Stanza, delayEl: Element): void {
-        const type = messageElement.getAttr('type');
+        const type = messageElement.getAttribute('type');
         if (type === 'chat') {
-            const messageHandled = this.messagePlugin.handleStanza(messageElement, delayEl);
+            const messageHandled = this.messagePlugin.registerHandler(messageElement, delayEl);
             if (messageHandled) {
                 this.mamMessageReceived$.next();
             }
         } else if (type === 'groupchat' || this.multiUserChatPlugin.isRoomInvitationStanza(messageElement)) {
-            this.multiUserChatPlugin.handleStanza(messageElement, delayEl);
+            this.multiUserChatPlugin.registerHandler(messageElement, delayEl);
         } else {
             throw new Error(`unknown archived message type: ${type}`);
         }
     }
 
     private handlePubSubEvent(eventElement: Element, delayElement: Element): void {
-        const itemsElement = eventElement.getChild('items');
-        const itemsNode = itemsElement?.attrs.node;
+        const itemsElement = eventElement.querySelector('items');
+        const itemsNode = itemsElement?.getAttribute('node');
 
         if (itemsNode !== MUC_SUB_EVENT_TYPE.messages) {
             this.logService.warn(`Handling of MUC/Sub message types other than ${MUC_SUB_EVENT_TYPE.messages} isn't implemented yet!`);
             return;
         }
 
-        const itemElements = itemsElement.getChildren('item');
-        itemElements.forEach((itemEl) => this.handleArchivedMessage(itemEl.getChild('message'), delayElement));
+        const itemElements = Array.from(itemsElement.querySelectorAll('item'));
+        itemElements.forEach((itemEl) => this.handleArchivedMessage(itemEl.querySelector('message'), delayElement));
     }
 }

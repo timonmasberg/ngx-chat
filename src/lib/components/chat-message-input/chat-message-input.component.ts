@@ -1,6 +1,6 @@
 import {Component, ElementRef, EventEmitter, Inject, Input, OnInit, Output, ViewChild} from '@angular/core';
 import {Recipient} from '../../core/recipient';
-import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/adapters/xmpp/interface/chat.service';
 
 @Component({
     selector: 'ngx-chat-message-input',

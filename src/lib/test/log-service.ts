@@ -1,4 +1,4 @@
-import { LogLevel, LogService } from '../services/adapters/log.service';
+import { LogLevel, LogService } from '../services/adapters/xmpp/service/log.service';
 import { currentSpecReporter } from './reporter.spec';
 
 export function testLogService() {

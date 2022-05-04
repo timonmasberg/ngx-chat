@@ -1,28 +1,26 @@
 import {NgZone} from '@angular/core';
-import {Client, client, xml} from '@xmpp/client';
 import {Subject} from 'rxjs';
 import {first, takeUntil} from 'rxjs/operators';
 import {getDomain} from '../../../../core/get-domain';
 import {timeout} from '../../../../core/utils-timeout';
-import {LogService} from '../../log.service';
-import {AbstractXmppPlugin} from './abstract-xmpp-plugin';
+import {LogService} from '../service/log.service';
+import {ChatConnection} from '../interface/chat-connection';
+
+const xmlns = 'jabber:iq:register';
 
 /**
  * XEP-0077: In-Band Registration
  * see: https://xmpp.org/extensions/xep-0077.html
- * Handles registration over the XMPP chat instead of relaying on a admin user account management
+ * Handles registration over the XMPP chat instead of relaying on an admin user account management
  */
-export class RegistrationPlugin extends AbstractXmppPlugin {
+export class RegistrationPlugin {
 
     private readonly registered$ = new Subject<void>();
     private readonly cleanUp = new Subject<void>();
     private readonly loggedIn$ = new Subject<void>();
     private readonly registrationTimeout = 5000;
-    private client: Client;
 
-    constructor(private logService: LogService,
-                private ngZone: NgZone) {
-        super();
+    constructor(private logService: LogService, private ngZone: NgZone, private connection: ChatConnection) {
     }
 
     /**
@@ -43,24 +41,21 @@ export class RegistrationPlugin extends AbstractXmppPlugin {
                     domain = domain || getDomain(service);
 
                     this.logService.debug('registration plugin', 'connecting...');
-                    await this.connect(username, password, service, domain);
+                    await this.connection.logIn({username, password, service, domain});
 
                     this.logService.debug('registration plugin', 'connection established, starting registration');
-                    await this.client.iqCaller.request(
-                        xml('iq', {type: 'get', to: domain},
-                            xml('query', {xmlns: 'jabber:iq:register'})
-                        )
-                    );
+                    await this.connection
+                        .$iq({type: 'get', to: domain})
+                        .c('query', {xmlns})
+                        .send();
 
                     this.logService.debug('registration plugin', 'server acknowledged registration request, sending credentials');
-                    await this.client.iqCaller.request(
-                        xml('iq', {type: 'set'},
-                            xml('query', {xmlns: 'jabber:iq:register'},
-                                xml('username', {}, username),
-                                xml('password', {}, password)
-                            )
-                        )
-                    );
+                    await this.connection
+                        .$iq({type: 'set'})
+                        .c('query', {xmlns: 'jabber:iq:register'})
+                        .c('username', {}, username)
+                        .up().c('password', {}, password)
+                        .send();
 
                     this.registered$.next();
                     await this.loggedIn$.pipe(takeUntil(this.cleanUp), first()).toPromise();
@@ -72,46 +67,7 @@ export class RegistrationPlugin extends AbstractXmppPlugin {
             } finally {
                 this.cleanUp.next();
                 this.logService.debug('registration plugin', 'cleaning up');
-                await this.client.stop();
             }
-        });
-    }
-
-    private connect(username: string, password: string, service: string, domain?: string): Promise<void> {
-        return new Promise((resolveConnectionEstablished, reject) => {
-            this.client = client({
-                domain: domain || getDomain(service),
-                service,
-                credentials: async (authenticationCallback) => {
-                    try {
-                    resolveConnectionEstablished();
-                    await this.registered$.pipe(takeUntil(this.cleanUp), first()).toPromise();
-                    await authenticationCallback({username, password});
-                    } catch (e) {
-                        this.logService.error('authenticationCallback failed with userName=' + username , e);
-                        reject(e)
-                    }
-                }
-            });
-
-            this.client.reconnect.stop();
-            this.client.timeout = this.registrationTimeout;
-
-            this.client.on('online', () => {
-                this.logService.debug('registration plugin', 'online event');
-                this.loggedIn$.next();
-            });
-
-            this.client.on('error', (err: any) => {
-                this.logService.error('registration plugin', err);
-                reject(err);
-            });
-
-            this.client.on('offline', () => {
-                this.logService.debug('registration plugin', 'offline event');
-            });
-
-            return this.client.start();
         });
     }
 }

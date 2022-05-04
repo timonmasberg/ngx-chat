@@ -9,7 +9,7 @@ import {
     RoomCreationOptions,
     RoomSummary,
     JidToNumber
-} from '../../chat-service';
+} from '../xmpp/interface/chat.service';
 import {BehaviorSubject, combineLatest, merge, Observable, Subject} from 'rxjs';
 import {Contact} from '../../../core/contact';
 import {Room} from '../../../core/room';
@@ -17,7 +17,7 @@ import {LogInRequest} from '../../../core/log-in-request';
 import {Recipient} from '../../../core/recipient';
 import {FileUploadHandler} from '../../../hooks/file-upload-handler';
 import {Form, parseForm} from '../../../core/form';
-import {ContactFactoryService} from '../contact-factory.service';
+import {ContactFactoryService} from '../xmpp/service/contact-factory.service';
 import JSXC from './jsxc/src';
 import PluginRepository from './jsxc/src/plugin/PluginRepository';
 import BlockingCommandPlugin from './jsxc/src/plugins/BlockingCommandPlugin';
@@ -26,10 +26,10 @@ import {JID, jid} from '@xmpp/jid';
 import Message from './jsxc/src/Message';
 import MessageArchiveManagementPlugin from './jsxc/src/plugins/mam/Plugin';
 import {AFFILIATION, ROLE} from './jsxc/src/MultiUserContact';
-import {MUC_SUB_FEATURE_ID} from '../xmpp/plugins/muc-sub.plugin';
+import {nsMucSub} from '../xmpp/plugins/muc-sub.plugin';
 import {FormFromJSON} from './jsxc/src/connection/Form';
 import {DIRECTION} from './jsxc/src/Message.interface';
-import {LogService} from '../log.service';
+import {LogService} from '../xmpp/service/log.service';
 import {MessageState, Message as ApiMessage} from '../../../core/message';
 import {defaultTranslations} from '../../../core/translations-default';
 import {dummyAvatarContact} from '../../../core/contact-avatar';
@@ -51,6 +51,7 @@ import TimePlugin from './jsxc/src/plugins/TimePlugin';
 import JingleMessageInitiationPlugin from './jsxc/src/plugins/JingleMessageInitiationPlugin';
 import AvatarPEPPlugin from './jsxc/src/plugins/AvatarPEPPlugin';
 import LastMessageCorrectionPlugin from './jsxc/src/plugins/LastMessageCorrectionPlugin';
+import {ChatConnection} from '../xmpp/interface/chat-connection';
 
 @Injectable()
 export class JSXCXmppChatService implements ChatService {
@@ -335,7 +336,7 @@ export class JSXCXmppChatService implements ChatService {
         const subscriptions = await this.currentUserAccountWrapper.innerAccount.getConnection().getPubSubService.getSubscriptions();
 
         const mapped = Array.from(Array.from(subscriptions.querySelectorAll('subscriptions'))
-            .find(el => el.namespaceURI === MUC_SUB_FEATURE_ID)
+            .find(el => el.namespaceURI === nsMucSub)
             ?.querySelectorAll('subscription'))
             ?.map(subscriptionElement => {
                 const subscribedEvents: string[] = Array.from(subscriptionElement
@@ -582,6 +583,13 @@ export class JSXCXmppChatService implements ChatService {
     unblockJid(bareJid: string): Promise<void> {
         return Promise.resolve(undefined);
     }
+
+    readonly afterReceiveMessage$: Observable<Element>;
+    readonly afterSendMessage$: Observable<Element>;
+    readonly beforeSendMessage$: Observable<Element>;
+    readonly chatConnectionService: ChatConnection;
+    readonly onBeforeOnline$: Observable<void>;
+    readonly onOffline$: Observable<void>;
 }
 
 function isMultiChatWrapper(contactWrapper: MultiUserContactWrapper | ContactWrapper): contactWrapper is MultiUserContactWrapper {

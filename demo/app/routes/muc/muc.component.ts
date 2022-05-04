@@ -18,7 +18,7 @@ import { distinctUntilChanged, filter, switchMap, takeUntil } from 'rxjs/operato
     styleUrls: ['./muc.component.css'],
 })
 export class MucComponent implements OnInit, OnDestroy {
-    private selectedRoomSubject = new Subject<Room>();
+    private selectedRoomSubject: Subject<Room> = new Subject<Room>();
     selectedRoom$: Observable<Room> = this.selectedRoomSubject.asObservable();
 
     currentRoom: Room;

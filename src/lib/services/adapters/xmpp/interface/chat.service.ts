@@ -1,14 +1,15 @@
 import {InjectionToken} from '@angular/core';
-import {BehaviorSubject, Observable, Subject} from 'rxjs';
-import {Room} from '../core/room';
-import {Contact} from '../core/contact';
-import {LogInRequest} from '../core/log-in-request';
-import {Recipient} from '../core/recipient';
-import {Translations} from '../core/translations';
-import {FileUploadHandler} from '../hooks/file-upload-handler';
+import {BehaviorSubject, Observable} from 'rxjs';
+import {Room} from '../../../../core/room';
+import {Contact} from '../../../../core/contact';
+import {LogInRequest} from '../../../../core/log-in-request';
+import {Recipient} from '../../../../core/recipient';
+import {Translations} from '../../../../core/translations';
+import {FileUploadHandler} from '../../../../hooks/file-upload-handler';
 import {JID} from '@xmpp/jid';
-import {Form} from '../core/form';
-import {Message, MessageState} from '../core/message';
+import {Form} from '../../../../core/form';
+import {Message, MessageState} from '../../../../core/message';
+import {ChatConnection, ChatConnectionFactory} from './chat-connection';
 
 export interface RoomSummary {
     jid: JID;
@@ -136,7 +137,7 @@ export type JidToNumber = Map<string, number>;
 
 /**
  * The chat service token gives you access to the main chat api and is implemented by default with an XMPP adapter,
- * you can always reuse the api and ui with a new service implementing the ChatService interface and providing the
+ * you can always reuse the api and ui with a new service implementing the ChatServiceInterface interface and providing the
  * said implementation with the token
  */
 export const CHAT_SERVICE_TOKEN = new InjectionToken<ChatService>('ngxChatService');
@@ -145,13 +146,17 @@ export const CHAT_SERVICE_TOKEN = new InjectionToken<ChatService>('ngxChatServic
 export type ConnectionStates = 'disconnected' | 'connecting' | 'online';
 
 /**
- * ChatService is your main API for using ngx-chat. Can be injected in your services like in the following example:
+ * ChatServiceInterface is your main API for using ngx-chat. Can be injected in your services like in the following example:
  *
  * ```
- * constructor(@Inject(CHAT_SERVICE_TOKEN) chatService: ChatService)
+ * constructor(@Inject(CHAT_SERVICE_TOKEN) chatService: ChatServiceInterface)
  * ```
  */
 export interface ChatService {
+    /**
+     * Current connection
+     */
+    readonly chatConnectionService: ChatConnection
 
     supportsPlugin: {
         block: boolean;
@@ -259,6 +264,27 @@ export interface ChatService {
      * new actions, e.g. for file uploads.
      */
     chatActions: ChatAction[];
+
+    /**
+     * Observable for plugins to clear up data and manage the message state
+     */
+    readonly afterReceiveMessage$: Observable<Element>;
+    /**
+     * Observable for plugins to clear up data and manage the message state
+     */
+    readonly afterSendMessage$: Observable<Element>;
+    /**
+     * Observable for plugins to extend the message transformation pipeline
+     */
+    readonly beforeSendMessage$: Observable<Element>;
+    /**
+     * Observable to hook at before online actions
+     */
+    readonly onBeforeOnline$: Observable<void>;
+    /**
+     * Observable for clean up actions after going offline
+     */
+    readonly onOffline$: Observable<void>;
 
     /**
      * Forces asynchronous reloading of your roster list from the server, {@link contacts$} will reflect this.

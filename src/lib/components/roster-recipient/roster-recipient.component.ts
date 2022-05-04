@@ -3,7 +3,7 @@ import { Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 import { Presence } from '../../core/presence';
 import { Recipient } from '../../core/recipient';
-import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/chat-service';
+import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/adapters/xmpp/interface/chat.service';
 
 @Component({
     selector: 'ngx-chat-roster-recipient',

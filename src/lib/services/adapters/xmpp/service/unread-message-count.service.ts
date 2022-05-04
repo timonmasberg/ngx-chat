@@ -1,40 +1,18 @@
-import { xml } from '@xmpp/client';
-import { Element } from 'ltx';
-import { BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription } from 'rxjs';
-import { debounceTime, delay, distinctUntilChanged, map, share } from 'rxjs/operators';
-import { JidToNumber } from '../../../chat-service';
-import { Direction, Message } from '../../../../core/message';
-import { Recipient } from '../../../../core/recipient';
-import { findSortedInsertionIndexLast } from '../../../../core/utils-array';
-import { ChatMessageListRegistryService } from '../../../components/chat-message-list-registry.service';
-import { AbstractStanzaBuilder } from '../abstract-stanza-builder';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { EntityTimePlugin } from './entity-time.plugin';
-import { MultiUserChatPlugin } from './multi-user-chat/multi-user-chat.plugin';
-import { PublishSubscribePlugin } from './publish-subscribe.plugin';
+import {BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription} from 'rxjs';
+import {debounceTime, delay, distinctUntilChanged, map, share} from 'rxjs/operators';
+import {JidToNumber} from '../interface/chat.service';
+import {Direction, Message} from '../../../../core/message';
+import {Recipient} from '../../../../core/recipient';
+import {findSortedInsertionIndexLast} from '../../../../core/utils-array';
+import {ChatMessageListRegistryService} from '../../../components/chat-message-list-registry.service';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
+import {EntityTimePlugin} from '../plugins/entity-time.plugin';
+import {MultiUserChatPlugin} from '../plugins/multi-user-chat/multi-user-chat.plugin';
+import {PublishSubscribePlugin} from '../plugins/publish-subscribe.plugin';
 
 const STORAGE_NGX_CHAT_LAST_READ_DATE = 'ngxchat:unreadmessagedate';
-const wrapperNodeName = 'entries';
-const nodeName = 'last-read';
 
 type JidToLastReadTimestamp = Map<string, number>;
-
-class LastReadEntriesNodeBuilder extends AbstractStanzaBuilder {
-
-    private lastReadNodes = [] as Element[];
-
-    addLastReadNode(jid: string, date: string) {
-        this.lastReadNodes.push(
-            xml(nodeName, {jid, date}),
-        );
-    }
-
-    toStanza(): Element {
-        return xml(wrapperNodeName, {}, this.lastReadNodes);
-    }
-
-}
 
 /**
  * Unofficial plugin using XEP-0163 / PubSub to track count of unread messages per recipient
@@ -48,10 +26,10 @@ class LastReadEntriesNodeBuilder extends AbstractStanzaBuilder {
  *     </entries>
  * </item>
  */
-export class UnreadMessageCountPlugin extends AbstractXmppPlugin {
+export class UnreadMessageCountService {
 
     /**
-     * already debounced to prevent the issues described in {@link UnreadMessageCountPlugin.jidToUnreadCount$}.
+     * already debounced to prevent the issues described in {@link UnreadMessageCountService.jidToUnreadCount$}.
      */
     public readonly unreadMessageCountSum$: Observable<number>;
     /**
@@ -69,7 +47,6 @@ export class UnreadMessageCountPlugin extends AbstractXmppPlugin {
         private entityTimePlugin: EntityTimePlugin,
         private multiUserChatPlugin: MultiUserChatPlugin,
     ) {
-        super();
 
         this.chatMessageListRegistry.chatOpened$
             .pipe(
@@ -145,12 +122,16 @@ export class UnreadMessageCountPlugin extends AbstractXmppPlugin {
 
         if (topLevelElements.length === 1) {
             const [itemElement] = topLevelElements;
-            for (const lastReadEntry of itemElement.getChild(wrapperNodeName).getChildren(nodeName)) {
-                const {jid, date} = lastReadEntry.attrs;
-                if (!isNaN(date)) {
-                    result.set(jid, date);
-                }
-            }
+            itemElement
+                .querySelector('entries')
+                .querySelectorAll('last-read')
+                .forEach((lastReadEntry) => {
+                    const jid = lastReadEntry.getAttribute('jid');
+                    const date = Number.parseInt(lastReadEntry.getAttribute('date'), 10);
+                    if (!isNaN(date)) {
+                        result.set(jid, date);
+                    }
+                });
         }
 
         return result;
@@ -175,23 +156,24 @@ export class UnreadMessageCountPlugin extends AbstractXmppPlugin {
     }
 
     private async persistLastSeenDates() {
-        const lastReadNodeBuilder = new LastReadEntriesNodeBuilder();
-        for (const [jid, date] of this.jidToLastReadTimestamp) {
-            lastReadNodeBuilder.addLastReadNode(jid, date.toString());
-        }
-
         await this.publishSubscribePlugin.storePrivatePayloadPersistent(
             STORAGE_NGX_CHAT_LAST_READ_DATE,
             'current',
-            lastReadNodeBuilder.toStanza());
+            (builder) => {
+                const wrapperBuilder = builder.c('entries');
+                for (const [jid, date] of this.jidToLastReadTimestamp) {
+                    wrapperBuilder.c('last-read', {jid, date: date.toString()});
+                }
+                return wrapperBuilder;
+            });
     }
 
     private handlePubSubEvent(event: Element) {
-        const items = event.getChild('items');
-        const itemsNode = items && items.attrs.node;
-        const item = items && items.getChildren('item');
-        if (itemsNode === STORAGE_NGX_CHAT_LAST_READ_DATE && item) {
-            const publishedLastJidToDate = this.parseLastSeenDates(item);
+        const itemsWrapper = event.querySelector('items');
+        const itemsNode = itemsWrapper?.getAttribute('node');
+        const items = itemsWrapper?.querySelectorAll('item');
+        if (itemsNode === STORAGE_NGX_CHAT_LAST_READ_DATE && items) {
+            const publishedLastJidToDate = this.parseLastSeenDates(Array.from(items));
             this.mergeJidToDates(publishedLastJidToDate);
         }
     }

@@ -6,7 +6,7 @@ import { Contact } from '../../core/contact';
 import { Recipient } from '../../core/recipient';
 import { MultiUserChatPlugin } from '../../services/adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';
 import { ChatListStateService } from '../../services/components/chat-list-state.service';
-import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/chat-service';
+import { CHAT_SERVICE_TOKEN, ChatService } from '../../services/adapters/xmpp/interface/chat.service';
 
 @Component({
     selector: 'ngx-chat-roster-list',

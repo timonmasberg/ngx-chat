@@ -1,55 +1,41 @@
-import { xml } from '@xmpp/client';
-import { BehaviorSubject } from 'rxjs';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
-import { Stanza } from '../../../../core/stanza';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
+import {ServiceDiscoveryPlugin} from './service-discovery.plugin';
+import {ChatPlugin} from '../../../../core/plugin';
+import {first} from 'rxjs/operators';
+import {Finder} from '../shared/finder';
 
-export const MUC_SUB_FEATURE_ID = 'urn:xmpp:mucsub:0';
+export const nsMucSub = 'urn:xmpp:mucsub:0';
 
 /**
  * support for https://docs.ejabberd.im/developer/xmpp-clients-bots/extensions/muc-sub/
  */
-export class MucSubPlugin extends AbstractXmppPlugin {
-    private readonly supportsMucSub$ = new BehaviorSubject<boolean | 'unknown'>('unknown');
+export class MucSubPlugin implements ChatPlugin {
+
+    readonly nameSpace = nsMucSub;
 
     constructor(
         private readonly xmppChatAdapter: XmppChatAdapter,
         private readonly serviceDiscoveryPlugin: ServiceDiscoveryPlugin,
     ) {
-        super();
-    }
-
-    onBeforeOnline(): PromiseLike<void> {
-        return this.determineSupportForMucSub();
-    }
-
-    private async determineSupportForMucSub() {
-        let isSupported: boolean;
-        try {
-            const service = await this.serviceDiscoveryPlugin.findService('conference', 'text');
-            isSupported = service.features.includes(MUC_SUB_FEATURE_ID);
-        } catch (e) {
-            isSupported = false;
-        }
-        this.supportsMucSub$.next(isSupported);
-    }
-
-    onOffline() {
-        this.supportsMucSub$.next('unknown');
     }
 
     async subscribeRoom(roomJid: string, nodes: string[] = []): Promise<void> {
-        const nick = this.xmppChatAdapter.chatConnectionService.userJid.local;
-        await this.xmppChatAdapter.chatConnectionService.sendIq(
-            makeSubscribeRoomStanza(roomJid, nick, nodes)
-        );
+        const nick = await this.xmppChatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
+        await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'set', to: roomJid})
+            .c('subscribe', {xmlns: this.nameSpace, nick})
+            .cCreateMethod((builder) => {
+                nodes.map(node => builder.c('event', {node}));
+                return builder;
+            })
+            .send();
     }
 
     async unsubscribeRoom(roomJid: string): Promise<void> {
-        await this.xmppChatAdapter.chatConnectionService.sendIq(
-            makeUnsubscribeRoomStanza(roomJid)
-        );
+        await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'set', to: roomJid})
+            .c('unsubscribe', {xmlns: this.nameSpace})
+            .send();
     }
 
     /**
@@ -58,12 +44,11 @@ export class MucSubPlugin extends AbstractXmppPlugin {
      * @param roomJid for the room to be unsubscribed from
      * @param jid user id to be unsubscribed
      */
-    unsubscribeJidFromRoom(roomJid: string, jid: string) {
-        this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'set', to: roomJid},
-                xml('unsubscribe', {xmlns: 'urn:xmpp:mucsub:0', jid}),
-            ),
-        );
+    async unsubscribeJidFromRoom(roomJid: string, jid: string) {
+        await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'set', to: roomJid})
+            .c('unsubscribe', {xmlns: this.nameSpace, jid})
+            .send();
     }
 
     /**
@@ -71,14 +56,14 @@ export class MucSubPlugin extends AbstractXmppPlugin {
      * see: https://docs.ejabberd.im/developer/xmpp-clients-bots/extensions/muc-sub/#g dd ddetting-list-of-subscribed-rooms
      */
     async getSubscribedRooms() {
-        const {local, domain} = this.xmppChatAdapter.chatConnectionService.userJid;
-        const from = `${local}@${domain}`;
-        const subscriptions = await this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'get', from, to: 'muc.' + domain},
-                xml('subscriptions', {xmlns: 'urn:xmpp:mucsub:0'}),
-            ),
-        );
-        return subscriptions.getChildren('subscription').map(sub => sub.getAttr('jid'));
+        const from = await this.xmppChatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
+        const domain = from.split('@')[0];
+        const subscriptions = await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'get', from, to: 'muc.' + domain})
+            .c('subscriptions', {xmlns: this.nameSpace})
+            .sendAwaitingResponse();
+
+        return Finder.create(subscriptions).searchByTag('subscription').results.map(sub => sub.getAttribute('jid'));
     }
 
     /**
@@ -87,50 +72,28 @@ export class MucSubPlugin extends AbstractXmppPlugin {
      * @param roomJid of the room the get a subscriber list from
      */
     getSubscribers(roomJid: string) {
-        this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'get', to: roomJid},
-                xml('subscriptions', {xmlns: 'urn:xmpp:mucsub:0'}),
-            ),
-        );
+        return this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'get', to: roomJid})
+            .c('subscriptions', {xmlns: this.nameSpace})
+            .sendAwaitingResponse();
     }
 
     async retrieveSubscriptions(): Promise<Map<string, string[]>> {
         const service = await this.serviceDiscoveryPlugin.findService('conference', 'text');
 
-        const result = await this.xmppChatAdapter.chatConnectionService.sendIq(
-            makeRetrieveSubscriptionsStanza(service.jid)
-        );
+        const result = await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'get', to: service.jid})
+            .c('subscriptions', {xmlns: this.nameSpace})
+            .sendAwaitingResponse();
 
-        const subscriptions = result
-            .getChild('subscriptions', MUC_SUB_FEATURE_ID)
-            ?.getChildren('subscription')
+        const subscriptions = Finder.create(result)
+            .searchByTag('subscriptions').searchByNamespace(this.nameSpace).searchByTag('subscription').results
             ?.map(subscriptionElement => {
-                const subscribedEvents: string[] = subscriptionElement
-                    .getChildren('event')
-                    ?.map(eventElement => eventElement.attrs.node) ?? [];
-                return [subscriptionElement.attrs.jid as string, subscribedEvents] as const;
+                const subscribedEvents: string[] = Finder.create(subscriptionElement).searchByTag('event').results
+                    ?.map(eventElement => eventElement.getAttribute('node')) ?? [];
+                return [subscriptionElement.getAttribute('jid'), subscribedEvents] as const;
             });
 
         return new Map(subscriptions);
     }
-}
-
-function makeSubscribeRoomStanza(roomJid: string, nick: string, nodes: readonly string[]): Stanza {
-    return xml('iq', {type: 'set', to: roomJid},
-        xml('subscribe', {xmlns: MUC_SUB_FEATURE_ID, nick},
-            nodes.map(node => xml('event', {node}))
-        )
-    );
-}
-
-function makeUnsubscribeRoomStanza(roomJid: string): Stanza {
-    return xml('iq', {type: 'set', to: roomJid},
-        xml('unsubscribe', {xmlns: MUC_SUB_FEATURE_ID})
-    );
-}
-
-function makeRetrieveSubscriptionsStanza(conferenceServiceJid: string): Stanza {
-    return xml('iq', {type: 'get', to: conferenceServiceJid},
-        xml('subscriptions', {xmlns: MUC_SUB_FEATURE_ID})
-    );
 }

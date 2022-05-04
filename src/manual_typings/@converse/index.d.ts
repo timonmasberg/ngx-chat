@@ -398,10 +398,10 @@ export namespace converse {
     /!**
      * Utility methods and globals from bundled 3rd party libraries.
      * @typedef ConverseEnv
-     * @property {function} converse.env.$build    - Creates a Strophe.Builder, for creating stanza objects.
-     * @property {function} converse.env.$iq       - Creates a Strophe.Builder with an <iq/> element as the root.
-     * @property {function} converse.env.$msg      - Creates a Strophe.Builder with an <message/> element as the root.
-     * @property {function} converse.env.$pres     - Creates a Strophe.Builder with an <presence/> element as the root.
+     * @property {function} converse.env.$build    - Creates a Strophe.BuilderInterface, for creating stanza objects.
+     * @property {function} converse.env.$iq       - Creates a Strophe.BuilderInterface with an <iq/> element as the root.
+     * @property {function} converse.env.$msg      - Creates a Strophe.BuilderInterface with an <message/> element as the root.
+     * @property {function} converse.env.$pres     - Creates a Strophe.BuilderInterface with an <presence/> element as the root.
      * @property {function} converse.env.Promise   - The Promise implementation used by Converse.
      * @property {function} converse.env.Strophe   - The [Strophe](http://strophe.im/strophejs) XMPP library used by Converse.
      * @property {function} converse.env.f         - And instance of Lodash with its methods wrapped to produce immutable auto-curried iteratee-first data-last methods.

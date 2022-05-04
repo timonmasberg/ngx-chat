@@ -1,11 +1,11 @@
 import {Injectable} from '@angular/core';
-import {ChatAction, ChatService, ConnectionStates, RoomCreationOptions, RoomSummary} from '../../chat-service';
+import {ChatAction, ChatService, ConnectionStates, RoomCreationOptions, RoomSummary} from '../xmpp/interface/chat.service';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {LogInRequest} from '../../../core/log-in-request';
 import {Contact} from '../../../core/contact';
 import {Recipient} from '../../../core/recipient';
 import {Room} from '../../../core/room';
-import {FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from '../../../../public-api';
+import {ChatConnection, FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from '../../../../public-api';
 import {JID} from '@xmpp/jid';
 import {defaultTranslations} from '../../../core/translations-default';
 
@@ -225,5 +225,12 @@ export class ConverseXmppChatService implements ChatService {
     unblockJid(bareJid: string): Promise<void> {
         return Promise.resolve(undefined);
     }
+
+    readonly afterReceiveMessage$: Observable<Element>;
+    readonly afterSendMessage$: Observable<Element>;
+    readonly beforeSendMessage$: Observable<Element>;
+    readonly chatConnectionService: ChatConnection;
+    readonly onBeforeOnline$: Observable<void>;
+    readonly onOffline$: Observable<void>;
 
 }

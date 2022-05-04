@@ -1,9 +1,9 @@
-import { xml } from '@xmpp/client';
-import { Element } from 'ltx';
-import { IqResponseStanza, Stanza } from '../../../../core/stanza';
-import { removeDuplicates } from '../../../../core/utils-array';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { PublishSubscribePlugin } from './publish-subscribe.plugin';
+import {IqResponseStanza} from '../../../../core/stanza';
+import {removeDuplicates} from '../../../../core/utils-array';
+import {PublishSubscribePlugin} from './publish-subscribe.plugin';
+import {ChatConnection} from '../interface/chat-connection';
+import {ChatPlugin} from '../../../../core/plugin';
+import {Builder} from '../interface/builder';
 
 export interface SavedConference {
     name: string;
@@ -11,17 +11,21 @@ export interface SavedConference {
     autojoin: boolean;
 }
 
-export const STORAGE_BOOKMARKS = 'storage:bookmarks';
+const nsBookmarks = 'storage:bookmarks';
 
 /**
  * XEP-0048 Bookmarks (https://xmpp.org/extensions/xep-0048.html)
  */
-export class BookmarkPlugin extends AbstractXmppPlugin {
+export class BookmarkPlugin implements ChatPlugin {
+    readonly nameSpace = nsBookmarks;
 
     private pendingAddConference: Promise<IqResponseStanza<'result'>> | null = null;
 
     constructor(private readonly publishSubscribePlugin: PublishSubscribePlugin) {
-        super();
+    }
+
+    registerHandler(connection: ChatConnection): Promise<void> {
+        throw new Error('Method not implemented.');
     }
 
     onOffline(): void {
@@ -29,9 +33,9 @@ export class BookmarkPlugin extends AbstractXmppPlugin {
     }
 
     async retrieveMultiUserChatRooms(): Promise<SavedConference[]> {
-        const itemNode = await this.publishSubscribePlugin.retrieveNodeItems(STORAGE_BOOKMARKS);
-        const storageNode = itemNode && itemNode[0] && itemNode[0].getChild('storage', STORAGE_BOOKMARKS);
-        const conferenceNodes = itemNode && storageNode.getChildren('conference');
+        const itemNode = await this.publishSubscribePlugin.retrieveNodeItems(nsBookmarks);
+        const storageNode =  Array.from(itemNode?.[0].querySelectorAll('storage')).find((el) => el.namespaceURI === nsBookmarks);
+        const conferenceNodes = itemNode && Array.from(storageNode.querySelectorAll('conference'));
         if (!conferenceNodes) {
             return [];
         }
@@ -40,28 +44,33 @@ export class BookmarkPlugin extends AbstractXmppPlugin {
 
     private convertElementToSavedConference(conferenceNode: Element): SavedConference {
         return {
-            name: conferenceNode.attrs.name,
-            jid: conferenceNode.attrs.jid,
-            autojoin: conferenceNode.attrs.autojoin === 'true',
+            name: conferenceNode.getAttribute('name'),
+            jid: conferenceNode.getAttribute('jid'),
+            autojoin: conferenceNode.getAttribute('autojoin') === 'true',
         };
     }
 
     saveConferences(conferences: SavedConference[]): Promise<IqResponseStanza<'result'>> {
         const deduplicatedConferences = removeDuplicates(conferences, (x, y) => x.jid === y.jid);
         return this.publishSubscribePlugin.storePrivatePayloadPersistent(
-            STORAGE_BOOKMARKS,
+            nsBookmarks,
             null,
-            xml('storage', {xmlns: STORAGE_BOOKMARKS},
-                deduplicatedConferences.map(c => this.convertSavedConferenceToElement(c)),
-            ),
-        );
+            (builder: Builder) => {
+                builder.c('storage', {xmlns: nsBookmarks});
+                deduplicatedConferences.map(conference => {
+                    const {name, autojoin, jid} = conference;
+                    builder.c('conference', {name, jid, autojoin: autojoin.toString()});
+                });
+                return builder;
+            });
     }
 
     async addConference(conferenceToSave: SavedConference): Promise<IqResponseStanza<'result'>> {
         while (this.pendingAddConference) {
             try {
                 await this.pendingAddConference; // serialize the writes, so that in case of multiple conference adds all get added
-            } catch {}
+            } catch {
+            }
         }
 
         this.pendingAddConference = this.addConferenceInternal(conferenceToSave);
@@ -79,9 +88,4 @@ export class BookmarkPlugin extends AbstractXmppPlugin {
 
         return await this.saveConferences(conferences);
     }
-
-    private convertSavedConferenceToElement({name, autojoin, jid}: SavedConference): Stanza {
-        return xml('conference', {name, jid, autojoin: autojoin.toString()});
-    }
-
 }

@@ -1,46 +1,47 @@
-import { xml } from '@xmpp/client';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { ServiceDiscoveryPlugin } from './service-discovery.plugin';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
+import {ServiceDiscoveryPlugin} from './service-discovery.plugin';
+import {IqResponseStanza} from '../../../../core/stanza';
+import {ChatPlugin} from '../../../../core/plugin';
+
+const nsPush = 'urn:xmpp:push:0';
 
 /**
  * xep-0357
  */
-export class PushPlugin extends AbstractXmppPlugin {
+export class PushPlugin implements ChatPlugin {
+
+    nameSpace = nsPush;
 
     constructor(
         private xmppChatAdapter: XmppChatAdapter,
         private serviceDiscoveryPlugin: ServiceDiscoveryPlugin,
     ) {
-        super();
     }
 
-    async register(node: string, jid?: string): Promise<any> {
+    async register(node: string, jid?: string): Promise<IqResponseStanza<'result'>> {
         if (!jid) {
             const service = await this.getPushServiceComponent();
             jid = service.jid;
         }
-        return await this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'set'},
-                xml('enable', {xmlns: 'urn:xmpp:push:0', jid, node})
-            )
-        );
+        return await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'set'})
+            .c('enable', {xmlns: this.nameSpace, jid, node})
+            .sendAwaitingResponse();
     }
 
     private async getPushServiceComponent() {
         return await this.serviceDiscoveryPlugin.findService('pubsub', 'push');
     }
 
-    async unregister(node?: string, jid?: string): Promise<any> {
+    async unregister(node?: string, jid?: string): Promise<IqResponseStanza<'result'>> {
         if (!jid) {
             const service = await this.getPushServiceComponent();
             jid = service.jid;
         }
-        return await this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'set'},
-                xml('disable', {xmlns: 'urn:xmpp:push:0', jid, node})
-            )
-        );
+        return await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'set'})
+            .c('disable', {xmlns: this.nameSpace, jid, node})
+            .sendAwaitingResponse();
     }
 
 }

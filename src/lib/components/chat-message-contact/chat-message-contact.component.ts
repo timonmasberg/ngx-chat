@@ -3,7 +3,7 @@ import {combineLatest, Observable, Subject} from 'rxjs';
 import {filter, takeUntil} from 'rxjs/operators';
 import {Direction} from '../../core/message';
 import {ChatListStateService} from '../../services/components/chat-list-state.service';
-import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/chat-service';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../../services/adapters/xmpp/interface/chat.service';
 import {REPORT_USER_INJECTION_TOKEN, ReportUserService} from '../../hooks/report-user-service';
 import {Contact} from '../../core/contact';
 import {ContactSubscription} from '../../core/subscription';

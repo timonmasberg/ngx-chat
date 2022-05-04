@@ -1,6 +1,6 @@
-export const mucNs = 'http://jabber.org/protocol/muc';
-export const mucUserNs = `${mucNs}#user`;
-export const mucAdminNs = `${mucNs}#admin`;
-export const mucOwnerNs = `${mucNs}#owner`;
-export const mucRoomConfigFormNs = `${mucNs}#roomconfig`;
-export const mucRequestFormNs = `${mucNs}#request`;
+export const nsMuc = 'http://jabber.org/protocol/muc';
+export const nsMucUser = `${nsMuc}#user`;
+export const nsMucAdmin = `${nsMuc}#admin`;
+export const nsMucOwner = `${nsMuc}#owner`;
+export const nsMucRoomConfigForm = `${nsMuc}#roomconfig`;
+export const nsMucRequestForm = `${nsMuc}#request`;

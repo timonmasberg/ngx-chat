@@ -1,4 +1,5 @@
-import { Stanza } from '../../../core/stanza';
+import {Stanza} from '../../../../core/stanza';
+import {Finder} from './finder';
 
 export class XmppResponseError extends Error {
     static readonly ERROR_ELEMENT_NS = 'urn:ietf:params:xml:ns:xmpp-stanzas';
@@ -25,17 +26,15 @@ export class XmppResponseError extends Error {
         type?: string,
         condition?: string
     } {
-        const errorElement = stanza.getChild('error');
-        const errorCode = Number(errorElement?.attrs.code) || undefined;
-        const errorType = errorElement?.attrs.type as string | undefined;
+        const errorElement = Finder.create(stanza).searchByTag('error').result;
+        const errorCode = Number(errorElement?.getAttribute('code')) || undefined;
+        const errorType = errorElement?.getAttribute('type') as string | undefined;
         const errorCondition =
-            errorElement
-                ?.children
+            Array.from(errorElement?.children)
                 .filter(childElement =>
-                    childElement.getName() !== 'text' &&
-                    childElement.attrs.xmlns === XmppResponseError.ERROR_ELEMENT_NS,
-                )[0]
-                ?.getName();
+                    childElement.nodeName !== 'text' &&
+                    childElement.getAttribute('xmlns') === XmppResponseError.ERROR_ELEMENT_NS,
+                )[0].nodeName;
 
         return {
             code: errorCode,
@@ -56,8 +55,14 @@ export class XmppResponseError extends Error {
             `errorType: ${type ?? '[unknown]'}`,
             `errorCondition: ${condition ?? '[unknown]'}`,
         ].join(', ');
-        const errorText =
-            stanza.getChild('error')?.getChildText('text', XmppResponseError.ERROR_ELEMENT_NS) || 'Unknown error';
+        const stanzaError = Finder
+            .create(stanza)
+            ?.searchByTag('error')
+            ?.searchByTag('text')
+            ?.searchByNamespace(XmppResponseError.ERROR_ELEMENT_NS)
+            ?.result
+            ?.textContent;
+        const errorText = stanzaError || 'Unknown error';
 
         return `XmppResponseError: ${errorText}${additionalData ? ` (${additionalData})` : ''}`;
     }

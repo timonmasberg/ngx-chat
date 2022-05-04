@@ -1,7 +1,7 @@
 import {Inject, Injectable} from '@angular/core';
 import {JID} from '@xmpp/jid';
 import {Contact} from '../../core/contact';
-import {CHAT_SERVICE_TOKEN, ChatService} from '../chat-service';
+import {CHAT_SERVICE_TOKEN, ChatService} from '../adapters/xmpp/interface/chat.service';
 import {Room} from '../../core/room';
 
 @Injectable()

@@ -1,45 +1,55 @@
-import { xml } from '@xmpp/client';
-import { Element } from 'ltx';
-import { Direction } from '../../../../core/message';
-import { IqResponseStanza, Stanza } from '../../../../core/stanza';
-import { XmppChatAdapter } from '../xmpp-chat-adapter.service';
-import { AbstractXmppPlugin } from './abstract-xmpp-plugin';
-import { MessageReceivedEvent } from './message.plugin';
+import {Direction} from '../../../../core/message';
+import {IqResponseStanza, Stanza} from '../../../../core/stanza';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
+import {MessageReceivedEvent} from './message.plugin';
+import {ChatPlugin} from '../../../../core/plugin';
+import {Finder} from '../shared/finder';
+import {first} from 'rxjs/operators';
+
+export const nsCarbons = 'urn:xmpp:carbons:2';
+export const nsForward = 'urn:xmpp:forward:0';
+export const nsClient = 'jabber:client';
 
 /**
  * XEP-0280 Message Carbons
+ * See XEP-0280 https://xmpp.org/extensions/xep-0280.html#enabling
  */
-export class MessageCarbonsPlugin extends AbstractXmppPlugin {
+export class MessageCarbonsPlugin implements ChatPlugin {
 
-    constructor(private readonly xmppChatAdapter: XmppChatAdapter) {
-        super();
+    nameSpace = nsCarbons;
+
+    constructor(private readonly xmppChatAdapter: XmppChatAdapter) {}
+
+    /**
+     * Ask the XMPP server to enable Message Carbons
+     */
+    async enableCarbons(): Promise<IqResponseStanza> {
+       return await this.xmppChatAdapter.chatConnectionService
+            .$iq({type: 'set'})
+            .c('enable', {xmlns: nsCarbons})
+            .sendAwaitingResponse();
     }
 
     async onBeforeOnline(): Promise<IqResponseStanza> {
-        return await this.xmppChatAdapter.chatConnectionService.sendIq(
-            xml('iq', {type: 'set'},
-                xml('enable', {xmlns: 'urn:xmpp:carbons:2'}),
-            ),
-        );
+        return await this.enableCarbons();
     }
 
-    handleStanza(stanza: Stanza): boolean {
-        const receivedOrSentElement = stanza.getChildByAttr('xmlns', 'urn:xmpp:carbons:2');
-        const forwarded = receivedOrSentElement && receivedOrSentElement.getChild('forwarded', 'urn:xmpp:forward:0');
-        const messageElement = forwarded && forwarded.getChild('message', 'jabber:client');
-        const carbonFrom = stanza.attrs.from;
-        const userJid = this.xmppChatAdapter.chatConnectionService.userJid;
-        if (stanza.is('message') && receivedOrSentElement && forwarded && messageElement && userJid
-            && userJid.bare().toString() === carbonFrom) {
+    async registerHandler(stanza: Stanza): Promise<boolean> {
+        const receivedOrSentElement = Finder.create(stanza).searchByNamespace(this.nameSpace).result;
+        const forwarded = Finder.create(receivedOrSentElement).searchByTag('forwarded').searchByNamespace(nsForward);
+        const messageElement = forwarded.searchByTag('message').searchByNamespace('jabber:client').result;
+        const carbonFrom = stanza.getAttribute('from');
+        const userJid = await this.xmppChatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
+        if (stanza.tagName === 'message' && receivedOrSentElement && messageElement && userJid === carbonFrom) {
             return this.handleCarbonMessageStanza(messageElement, receivedOrSentElement);
         }
         return false;
     }
 
     private handleCarbonMessageStanza(messageElement: Element, receivedOrSent: Element): boolean {
-        const direction = receivedOrSent.is('received') ? Direction.in : Direction.out;
+        const direction = receivedOrSent.tagName === 'received' ? Direction.in : Direction.out;
         // body can be missing on type=chat messageElements
-        const body = messageElement.getChildText('body')?.trim();
+        const body = messageElement.querySelector('body')?.textContent.trim();
 
         const message = {
             body,
@@ -50,9 +60,9 @@ export class MessageCarbonsPlugin extends AbstractXmppPlugin {
         };
 
         const messageReceivedEvent = new MessageReceivedEvent();
-        this.xmppChatAdapter.plugins.forEach(plugin => plugin.afterReceiveMessage(message, messageElement, messageReceivedEvent));
         if (!messageReceivedEvent.discard) {
-            const {from, to} = messageElement.attrs;
+            const from = messageElement.getAttribute('from');
+            const to = messageElement.getAttribute('to');
             const contactJid = direction === Direction.in ? from : to;
             const contact = this.xmppChatAdapter.getOrCreateContactByIdSync(contactJid);
             contact.addMessage(message);

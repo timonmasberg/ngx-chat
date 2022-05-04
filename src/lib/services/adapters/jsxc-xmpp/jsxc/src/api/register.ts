@@ -1,8 +1,8 @@
 import UUID from '../util/UUID';
 import BaseError from '../errors/BaseError';
 import Form from '../connection/Form';
-import Translation from '../util/Translation';
-import Log from '../util/Log';
+import {Translation} from '../util/Translation';
+import {Log} from '../util/Log';
 
 const NS_REGISTER = 'jabber:iq:register';
 const ALLOWED_FIELDS = [
@@ -137,7 +137,7 @@ class Registration {
                 const values = form.getValues(allowedField);
 
                 if (values && values.length === 1) {
-                    queryStanza.c(allowedField, values[0]).up();
+                    queryStanza.c(allowedField, {}, values[0]).up();
                 }
             }
         }
@@ -199,7 +199,7 @@ class Connection {
         if (this.sid) {
             return {
                 sid: this.sid,
-                rid: this.rid,
+                rid: this.rid.toString(),
                 xmlns: Strophe.NS.HTTPBIND,
             };
         }
@@ -207,11 +207,11 @@ class Connection {
         return {
             'to': this.domain,
             'xml:lang': 'en',
-            'wait ': 60,
-            'hold ': 1,
+            'wait ': '60',
+            'hold ': '1',
             'content ': 'text/xml; charset=utf-8',
             'ver ': '1.6',
-            'rid ': this.rid,
+            'rid ': this.rid.toString(),
             'xmpp:version': '1.0',
             'xmlns:xmpp': Strophe.NS.BOSH,
             xmlns: Strophe.NS.HTTPBIND,

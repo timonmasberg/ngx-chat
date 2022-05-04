@@ -1,8 +1,10 @@
 import {BehaviorSubject} from 'rxjs';
 import {first} from 'rxjs/operators';
-import {XmppChatAdapter} from '../xmpp-chat-adapter.service';
-import {AbstractXmppPlugin} from './abstract-xmpp-plugin';
+import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
 import {ChatPlugin} from '../../../../core/plugin';
+import {nsPubSubOptions} from './publish-subscribe.plugin';
+import {nsBlocking} from './block.plugin';
+import {nsMucSub} from './muc-sub.plugin';
 
 export interface IdentityAttrs {
     category: string;
@@ -16,20 +18,22 @@ export interface Service {
     features: string[];
 }
 
+export const nsDisco = 'http://jabber.org/protocol/disco';
+export const nsDiscoInfo = `${nsDisco}#info`;
+export const nsDiscoItems = `${nsDisco}#items`;
+
 /**
  * see XEP-0030 Service Discovery
  */
 export class ServiceDiscoveryPlugin implements ChatPlugin {
 
-    public static readonly DISCO_INFO = 'http://jabber.org/protocol/disco#info';
-    public static readonly DISCO_ITEMS = 'http://jabber.org/protocol/disco#items';
+    readonly nameSpace = nsDisco;
 
     private readonly servicesInitialized$ = new BehaviorSubject(false);
     private hostedServices: Service[] = [];
     private readonly resourceCache = new Map<string, Service>();
 
     constructor(private readonly chatAdapter: XmppChatAdapter) {
-        super();
     }
 
     async onBeforeOnline(): Promise<void> {
@@ -41,6 +45,16 @@ export class ServiceDiscoveryPlugin implements ChatPlugin {
         this.servicesInitialized$.next(false);
         this.hostedServices = [];
         this.resourceCache.clear();
+    }
+
+    async determineSupportedPlugins() {
+        const userJid = await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
+        // @TODO: move the plugin support checks here to return plugins to initialized
+        const pubsub = (await this.findService('pubsub', 'pep')).features.includes(nsPubSubOptions);
+        const blocking = await this.supportsFeature(userJid, nsBlocking);
+        const mucSub = (await this.findService('conference', 'text')).features.includes(nsMucSub);
+        const mam = await this.supportsFeature(userJid, this.nameSpace,);
+        return {pubsub, blocking, mucSub, mam};
     }
 
     async supportsFeature(jid: string, searchedFeature: string): Promise<boolean> {
@@ -64,9 +78,7 @@ export class ServiceDiscoveryPlugin implements ChatPlugin {
     }
 
     async findService(category: string, type: string): Promise<Service> {
-
         return new Promise((resolve, reject) => {
-
             this.servicesInitialized$.pipe(first(value => !!value)).subscribe(() => {
                 const results = this.hostedServices.filter(service =>
                     service.identitiesAttrs.filter(identityAttrs => identityAttrs.category === category
@@ -81,14 +93,12 @@ export class ServiceDiscoveryPlugin implements ChatPlugin {
                     return resolve(results[0]);
                 }
             });
-
         });
-
     }
 
     private async discoverServices(mainDomain: string): Promise<void> {
         const to = await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
-        const serviceListResponse = await this.sendDiscoQuery(ServiceDiscoveryPlugin.DISCO_ITEMS, to);
+        const serviceListResponse = await this.sendDiscoQuery(nsDiscoItems, to);
 
         const serviceDomains = new Set(
             Array.from(serviceListResponse
@@ -106,7 +116,7 @@ export class ServiceDiscoveryPlugin implements ChatPlugin {
     }
 
     private async discoverServiceInformation(serviceDomain: string): Promise<Service> {
-        const serviceInformationResponse = await this.sendDiscoQuery(ServiceDiscoveryPlugin.DISCO_INFO, serviceDomain);
+        const serviceInformationResponse = await this.sendDiscoQuery(nsDiscoInfo, serviceDomain);
 
         const queryNode = serviceInformationResponse.querySelector('query');
         const features = Array.from(queryNode.querySelectorAll('feature')).map((featureNode: Element) => featureNode.getAttribute('var'));

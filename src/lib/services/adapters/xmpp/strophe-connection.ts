@@ -1,7 +1,7 @@
 import debounce from 'lodash-es/debounce';
 import compact from 'lodash-es/compact';
 import {Strophe} from 'strophe.js';
-import {LogService} from '../log.service';
+import {LogService} from './service/log.service';
 import {Observable, Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
@@ -245,7 +245,17 @@ export class StropheConnection extends Strophe.Connection {
     }
 
 
-    static CreateConnection(logService: LogService, boshServiceUrl: string, websocketUrl: string, authenticationMode: AuthenticationMode) {
+    static async createConnection(
+        logService: LogService,
+        connectionUrls: {
+            boshServiceUrl?: string,
+            websocketUrl?: string,
+            domain?: string
+        },
+        authenticationMode = AuthenticationMode.LOGIN
+    ): Promise<Strophe.Connection> {
+        const {boshServiceUrl, websocketUrl, domain} = connectionUrls;
+
         if (!boshServiceUrl && authenticationMode === AuthenticationMode.PREBIND) {
             throw new Error('authentication is set to \'prebind\' but we don\'t have a BOSH connection');
         }
@@ -256,7 +266,7 @@ export class StropheConnection extends Strophe.Connection {
         } else if (boshServiceUrl) {
             connection_url = boshServiceUrl;
         }
-        return new StropheConnection(
+        const connection = new StropheConnection(
             logService,
             {
                 discoverConnectionMethods: true,
@@ -270,6 +280,12 @@ export class StropheConnection extends Strophe.Connection {
             },
             connection_url,
         );
+
+        if (!connection_url && domain) {
+            await connection.discoverConnectionMethods(domain);
+        }
+
+        return connection;
     }
 
     static generateResource() {
@@ -303,8 +319,9 @@ export class StropheConnection extends Strophe.Connection {
      * connection of their own XMPP server instead of a proxy provided by the
      * host of Converse.js.
      * @method Connnection.discoverConnectionMethods
+     * @param domain the xmpp server domain to requests the connection urls from
      */
-    async discoverConnectionMethods(domain) {
+    async discoverConnectionMethods(domain: string) {
         // Use XEP-0156 to check whether this host advertises websocket or BOSH connection methods.
         const options = {
             'mode': 'cors' as RequestMode,
@@ -332,7 +349,7 @@ export class StropheConnection extends Strophe.Connection {
      * Establish a new XMPP session by logging in with the supplied JID and
      * password.
      * @method Connnection.connect
-     * @param { String } jid
+     * @param { String } jid userId@domain.tld/resources
      * @param { String } password
      * @param { Function } callback
      */
@@ -534,17 +551,17 @@ export class StropheConnection extends Strophe.Connection {
     }
 
     private readonly CONNECTION_STATUS = {
-        [Strophe.Status.ATTACHED] : 'ATTACHED',
-        [Strophe.Status.AUTHENTICATING] : 'AUTHENTICATING',
-        [Strophe.Status.AUTHFAIL] : 'AUTHFAIL',
-        [Strophe.Status.CONNECTED] : 'CONNECTED',
-        [Strophe.Status.CONNECTING] : 'CONNECTING',
-        [Strophe.Status.CONNFAIL] : 'CONNFAIL',
-        [Strophe.Status.DISCONNECTED] : 'DISCONNECTED',
-        [Strophe.Status.DISCONNECTING] : 'DISCONNECTING',
-        [Strophe.Status.ERROR] : 'ERROR',
-        [Strophe.Status.RECONNECTING] : 'RECONNECTING',
-        [Strophe.Status.REDIRECT] : 'REDIRECT',
+        [Strophe.Status.ATTACHED]: 'ATTACHED',
+        [Strophe.Status.AUTHENTICATING]: 'AUTHENTICATING',
+        [Strophe.Status.AUTHFAIL]: 'AUTHFAIL',
+        [Strophe.Status.CONNECTED]: 'CONNECTED',
+        [Strophe.Status.CONNECTING]: 'CONNECTING',
+        [Strophe.Status.CONNFAIL]: 'CONNFAIL',
+        [Strophe.Status.DISCONNECTED]: 'DISCONNECTED',
+        [Strophe.Status.DISCONNECTING]: 'DISCONNECTING',
+        [Strophe.Status.ERROR]: 'ERROR',
+        [Strophe.Status.RECONNECTING]: 'RECONNECTING',
+        [Strophe.Status.REDIRECT]: 'REDIRECT',
     };
 
     /**

@@ -2,7 +2,7 @@ import { JID } from '@xmpp/jid';
 import { ReplaySubject, Subject } from 'rxjs';
 import { dummyAvatarRoom } from './contact-avatar';
 import { DateMessagesGroup, MessageStore } from './message-store';
-import { LogService } from '../services/adapters/log.service';
+import { LogService } from '../services/adapters/xmpp/service/log.service';
 import { jid as parseJid } from '@xmpp/client';
 import { isJid, Recipient } from './recipient';
 import { RoomMetadata } from '../services/adapters/xmpp/plugins/multi-user-chat/multi-user-chat.plugin';

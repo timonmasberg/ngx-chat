@@ -1,25 +1,19 @@
 import {TestBed} from '@angular/core/testing';
-import {jid as parseJid, xml} from '@xmpp/client';
 import {first, take} from 'rxjs/operators';
-import {Contact} from '../../../core/contact';
-import {Direction} from '../../../core/message';
-import {Stanza} from '../../../core/stanza';
+import {Contact} from '../../core/contact';
+import {Direction} from '../../core/message';
 
-import {testLogService} from '../../../test/log-service';
-import {MockClientFactory} from '../../../test/xmppClientMock';
-import {CHAT_SERVICE_TOKEN} from '../../chat-service';
-import {ContactFactoryService} from '../contact-factory.service';
-import {LogService} from '../log.service';
-import {MessageUuidPlugin} from './plugins/message-uuid.plugin';
-import {MessagePlugin} from './plugins/message.plugin';
+import {testLogService} from '../../test/log-service';
+import {CHAT_SERVICE_TOKEN} from './xmpp/interface/chat.service';
+import {ContactFactoryService} from './xmpp/service/contact-factory.service';
+import {LogService} from './xmpp/service/log.service';
 import {XmppChatAdapter} from './xmpp-chat-adapter.service';
-import {ChatConnectionService} from './chat-connection.service';
-import {XmppClientFactoryService} from './xmpp-client-factory.service';
+import {MockChatConnectionFactory, MockConnectionService} from '../../test/mock-connection.service';
+import {CHAT_CONNECTION_FACTORY_TOKEN} from './xmpp/interface/chat-connection';
 
 describe('XmppChatAdapter', () => {
-
     let chatService: XmppChatAdapter;
-    let chatConnectionService: ChatConnectionService;
+    let chatConnectionService: MockConnectionService;
     let contactFactory;
 
     let contact1: Contact;
@@ -27,63 +21,43 @@ describe('XmppChatAdapter', () => {
     let contacts: Contact[];
 
     beforeEach(() => {
-        const mockClientFactory = new MockClientFactory();
-        const xmppClientMock = mockClientFactory.clientInstance;
-
         const logService = testLogService();
         TestBed.configureTestingModule({
             providers: [
-                ChatConnectionService,
-                {provide: XmppClientFactoryService, useValue: mockClientFactory},
+                {provide: CHAT_CONNECTION_FACTORY_TOKEN, use: MockChatConnectionFactory},
                 {provide: CHAT_SERVICE_TOKEN, useClass: XmppChatAdapter},
                 {provide: LogService, useValue: logService},
                 ContactFactoryService
             ]
         });
 
-        chatConnectionService = TestBed.inject(ChatConnectionService);
-        chatConnectionService.client = xmppClientMock;
         contactFactory = TestBed.inject(ContactFactoryService);
         chatService = TestBed.inject(CHAT_SERVICE_TOKEN) as XmppChatAdapter;
-        chatService.addPlugins([new MessageUuidPlugin(), new MessagePlugin(chatService, logService)]);
 
         contact1 = contactFactory.createContact('test@example.com', 'jon doe');
         contact2 = contactFactory.createContact('test2@example.com', 'jane dane');
         contacts = [contact1, contact2];
-
-        chatConnectionService.userJid = parseJid('me', 'example.com', 'something');
     });
 
     describe('contact management', () => {
 
         it('#getContactById() should ignore resources', () => {
-
             chatService.contacts$.next(contacts);
-            expect(chatService.getContactById('test2@example.com/test123'))
-                .toEqual(contact2);
-
+            expect(chatService.getContactById('test2@example.com/test123')).toEqual(contact2);
         });
 
         it('#getContactById() should return the correct contact', () => {
-
             chatService.contacts$.next(contacts);
 
-            expect(chatService.getContactById('test@example.com'))
-                .toEqual(contact1);
+            expect(chatService.getContactById('test@example.com')).toEqual(contact1);
 
-            expect(chatService.getContactById('test2@example.com'))
-                .toEqual(contact2);
-
+            expect(chatService.getContactById('test2@example.com')).toEqual(contact2);
         });
 
         it('#getContactById() should return undefined when no such contact exists', () => {
-
             chatService.contacts$.next(contacts);
-            expect(chatService.getContactById('non@existing.com'))
-                .toBeUndefined();
-
+            expect(chatService.getContactById('non@existing.com')).toBeUndefined();
         });
-
     });
 
     describe('messages', () => {
@@ -96,9 +70,12 @@ describe('XmppChatAdapter', () => {
                 expect(contact.messages[0].direction).toEqual(Direction.in);
                 done();
             });
-            chatConnectionService.onStanzaReceived(
-                xml('message', {from: contact1.jidBare.toString(), to: chatConnectionService.userJid.toString()},
-                    xml('body', {}, 'message text')) as Stanza);
+            chatConnectionService.mockDataReceived(
+                chatConnectionService
+                    .$msg({from: contact1.jidBare.toString(), to: chatConnectionService.userJid.toString()})
+                    .c('body', {}, 'message text')
+                    .tree()
+            );
         });
 
         it('#messages$ should not emit contact on sending messages', () => {
@@ -120,9 +97,11 @@ describe('XmppChatAdapter', () => {
                 expect(message.direction).toEqual(Direction.in);
                 done();
             });
-            chatConnectionService.onStanzaReceived(
-                xml('message', {from: contact1.jidBare.toString(), to: chatConnectionService.userJid.toString()},
-                    xml('body', {}, 'message text')) as Stanza);
+            chatConnectionService.mockDataReceived(
+                chatConnectionService
+                    .$msg({from: contact1.jidBare.toString(), to: chatConnectionService.userJid.toString()})
+                    .c('body', {}, 'message text')
+                    .tree());
         });
 
         it('#messages$ in contact should emit on sending messages', (done) => {
@@ -147,14 +126,12 @@ describe('XmppChatAdapter', () => {
                     done();
                 }
             });
-            const sampleMessageStanzaWithId = xml('message', {
-                    from: contact1.jidBare.toString(),
-                    to: chatConnectionService.userJid.toString()
-                },
-                xml('origin-id', {id: 'id'}),
-                xml('body', {}, 'message text')) as Stanza;
-            chatConnectionService.onStanzaReceived(sampleMessageStanzaWithId);
-            chatConnectionService.onStanzaReceived(sampleMessageStanzaWithId);
+            const sampleMessageStanzaWithId = chatConnectionService
+                .$msg({from: contact1.jidBare.toString(), to: chatConnectionService.userJid.toString()})
+                .c('origin-id', {id: 'id'})
+                .c('body', {}, 'message text').tree();
+            chatConnectionService.mockDataReceived(sampleMessageStanzaWithId);
+            chatConnectionService.mockDataReceived(sampleMessageStanzaWithId);
         });
 
     });
