@@ -118,14 +118,14 @@ const valueParsers = {
 };
 
 export function parseForm(formEl: Element): Form {
-    if (formEl.nodeName !== 'x' || formEl.namespaceURI !== FORM_NS) {
-        throw new Error(`Provided element is not a form element: elementName=${formEl.namespaceURI}, xmlns=${formEl.namespaceURI}, form=${formEl.toString()}`);
+    if (formEl.nodeName !== 'x' || formEl.getAttribute('xmlns') !== FORM_NS) {
+        throw new Error(`Provided element is not a form element: elementName=${formEl.tagName}, xmlns=${formEl.getAttribute('xmlns')}, form=${formEl.toString()}`);
     }
 
     return {
         type: formEl.getAttribute('type') as FormType,
         title: formEl.getAttribute('title') ?? undefined,
-        instructions: Array.from(formEl.querySelectorAll('instructions')).map(descEl => descEl.textContent),
+        instructions: Array.from(formEl.querySelectorAll('instructions')).map(descEl => descEl?.textContent),
         fields: Array.from(formEl.querySelectorAll('field'))
             .map(fieldEl => {
                 const rawType = fieldEl.getAttribute('type');
@@ -135,7 +135,7 @@ export function parseForm(formEl: Element): Form {
                 let options: FieldOption[] | undefined;
                 if (type === 'list-single' || type === 'list-multi') {
                     options = Array.from(fieldEl.querySelectorAll('option')).map(optionEl => ({
-                        value: optionEl.querySelector('value').textContent,
+                        value: optionEl.querySelector('value')?.textContent,
                         label: optionEl.getAttribute('label'),
                     }));
                 }
@@ -143,7 +143,7 @@ export function parseForm(formEl: Element): Form {
                     type,
                     variable,
                     label,
-                    description: fieldEl.querySelector('desc').textContent ?? undefined,
+                    description: fieldEl.querySelector('desc')?.textContent ?? undefined,
                     required: fieldEl.querySelector('required') != null,
                     value: valueParsers[type](Array.from(fieldEl.querySelectorAll('value'))),
                     options,
@@ -152,8 +152,8 @@ export function parseForm(formEl: Element): Form {
     };
 }
 
-export function getField(form: Form, variable: string): FormField | undefined {
-    return form.fields.find(field => field.variable === variable) ?? undefined;
+export function getField<TFormField extends FormField>(form: Form, variable: string): TFormField | undefined {
+    return form.fields.find(field => field.variable === variable) as TFormField ?? undefined;
 }
 
 export function setFieldValue<TFieldType extends FieldType, TValue extends FieldValueType[TFieldType]>(
@@ -163,27 +163,26 @@ export function setFieldValue<TFieldType extends FieldType, TValue extends Field
     value: TValue,
     createField = false,
 ) {
-    let field = form.fields
-        .find((f) => f.variable === variable);
+    const field = form.fields.find((f) => f.variable === variable);
 
-    if (field) {
-        if (field.type !== type) {
-            throw new Error(`type mismatch setting field value: variable=${field.variable}, field.type=${field.type}, requested type=${type}`);
-        }
+    if (field && field.type === type) {
         field.value = value;
         return;
     }
 
-    if (createField) {
-        field = {
-            type,
-            variable,
-            value,
-        } as FormField;
-        form.fields.push(field);
-    } else {
+    if (field && field.type !== type) {
+        throw new Error(`type mismatch setting field value: variable=${field.variable}, field.type=${field.type}, requested type=${type}`);
+    }
+
+    if (!createField) {
         throw new Error(`field for variable not found! variable=${variable}, type=${type}, value=${value}`);
     }
+
+    form.fields.push({
+        type,
+        variable,
+        value,
+    } as FormField);
 }
 
 function serializeTextualField(field: TextualFormField | ListSingleFormField): string[] {

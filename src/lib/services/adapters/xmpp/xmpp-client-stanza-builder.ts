@@ -5,8 +5,8 @@ export class XmppClientStanzaBuilder implements Builder {
     constructor(
         private element: XmppElement,
         private readonly getNextId: () => string,
-        private readonly sendInner: (content: Element) => Promise<void>,
-        private readonly sendInnerAwaitingResponse: (content: Element) => Promise<Element>,
+        private readonly sendInner: (content: XmppElement) => Promise<void>,
+        private readonly sendInnerAwaitingResponse: (content: XmppElement) => Promise<XmppElement>,
     ) {
     }
 
@@ -28,7 +28,7 @@ export class XmppClientStanzaBuilder implements Builder {
     }
 
     cNode(element: Element): Builder {
-        this.element = this.element.cnode(toLtxElement(element));
+        this.element = this.element.cnode(toXmppElement(element));
         return this;
     }
 
@@ -37,17 +37,17 @@ export class XmppClientStanzaBuilder implements Builder {
     }
 
     h(html: string): Builder {
-        const node = toLtxElement(new DOMParser().parseFromString(html, 'text/html').documentElement);
+        const node = toXmppElement(new DOMParser().parseFromString(html, 'text/html').documentElement);
         this.element = this.element.cnode(node);
         return this;
     }
 
     send(): Promise<void> {
-        return this.sendInner(toXMLElement(this.element));
+        return this.sendInner(this.element);
     }
 
-    sendAwaitingResponse(): Promise<Element> {
-        return this.sendInnerAwaitingResponse(toXMLElement(this.element));
+    async sendAwaitingResponse(): Promise<Element> {
+        return toXMLElement(await this.sendInnerAwaitingResponse(this.element));
     }
 
     t(text: string): Builder {
@@ -66,18 +66,18 @@ export class XmppClientStanzaBuilder implements Builder {
 }
 
 
-function toXMLElement(ltxElement: XmppElement): Element {
+export function toXMLElement(ltxElement: XmppElement): Element {
     const parser = new globalThis.DOMParser();
     return parser.parseFromString(ltxElement.toString(), 'text/xml').documentElement;
 }
 
-function toLtxElement(element: Element): XmppElement {
+export function toXmppElement(element: Element): XmppElement {
     const attributes = element.getAttributeNames().reduce<Record<string, unknown>>((collection, attributeName) => {
         collection[attributeName] = element.getAttribute(attributeName);
         return collection;
     }, {});
 
     const ltxRoot = new XmppElement(element.nodeName, attributes);
-    ltxRoot.children = Array.from(element.children).map(el => toLtxElement(el));
+    ltxRoot.children = Array.from(element.children).map(el => toXmppElement(el));
     return ltxRoot;
 }

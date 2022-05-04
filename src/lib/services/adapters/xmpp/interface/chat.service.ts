@@ -9,110 +9,11 @@ import {FileUploadHandler} from '../../../../hooks/file-upload-handler';
 import {JID} from '@xmpp/jid';
 import {Form} from '../../../../core/form';
 import {Message, MessageState} from '../../../../core/message';
-import {ChatConnection, ChatConnectionFactory} from './chat-connection';
+import {ChatConnection} from './chat-connection';
+import {Invitation} from '../plugins/multi-user-chat/invitation';
+import {RoomCreationOptions} from '../plugins/multi-user-chat/room-creation-options';
+import {RoomOccupant} from '../plugins/multi-user-chat/room-occupant';
 
-export interface RoomSummary {
-    jid: JID;
-    name: string;
-    roomInfo: Form | null;
-}
-
-export interface RoomUser {
-    userIdentifiers: {
-        userJid: JID,
-        nick?: string
-    }[];
-    affiliation?: Affiliation;
-    role?: Role;
-}
-
-export interface RoomOccupant {
-    occupantJid: JID;
-    affiliation: Affiliation;
-    nick: string;
-    role: Role;
-}
-
-
-export enum Affiliation {
-    none = 'none',
-    outcast = 'outcast',
-    member = 'member',
-    admin = 'admin',
-    owner = 'owner',
-}
-
-export enum Role {
-    none = 'none',
-    visitor = 'visitor',
-    participant = 'participant',
-    moderator = 'moderator',
-}
-
-
-export enum MUC_SUB_EVENT_TYPE {
-    presence = 'urn:xmpp:mucsub:nodes:presence',
-    messages = 'urn:xmpp:mucsub:nodes:messages',
-    affiliations = 'urn:xmpp:mucsub:nodes:affiliations',
-    subscribers = 'urn:xmpp:mucsub:nodes:subscribers',
-    config = 'urn:xmpp:mucsub:nodes:config',
-    subject = 'urn:xmpp:mucsub:nodes:subject',
-    system = 'urn:xmpp:mucsub:nodes:system',
-}
-
-
-/**
- * see:
- * https://xmpp.org/extensions/xep-0045.html#terms-rooms
- */
-export interface RoomCreationOptions extends RoomConfiguration {
-    /**
-     * The room id to create the room with. This is the `local` part of the room JID.
-     */
-    roomId: string;
-    /**
-     * Optional nickname to use in the room. Current user's nickname will be used if not provided.
-     */
-    nick?: string;
-}
-
-export interface RoomConfiguration {
-    /**
-     * Optional name for the room. If none is provided, room will be only identified by its JID.
-     */
-    name?: string;
-    /**
-     * A room that can be found by any user through normal means such as searching and service discovery
-     */
-    public?: boolean;
-    /**
-     * for true:
-     * A room that a user cannot enter without being on the member list.
-     * for false:
-     * A room that non-banned entities are allowed to enter without being on the member list.
-     */
-    membersOnly?: boolean;
-    /**
-     * for true:
-     * A room in which an occupant's full JID is exposed to all other occupants,
-     * although the occupant can request any desired room nickname.
-     * for false:
-     * A room in which an occupant's full JID can be discovered by room moderators only.
-     */
-    nonAnonymous?: boolean;
-    /**
-     * for true:
-     * A room that is not destroyed if the last occupant exits.
-     * for false:
-     * A room that is destroyed if the last occupant exits.
-     */
-    persistentRoom?: boolean;
-    /**
-     * allow ejabberd MucSub subscriptions.
-     * Room occupants are allowed to subscribe to message notifications being archived while they were offline
-     */
-    allowSubscription?: boolean;
-}
 
 export interface ChatAction {
     /**
@@ -204,6 +105,8 @@ export interface ChatService {
 
     rooms$: Observable<Room[]>;
 
+    onInvitation$: Observable<Invitation>;
+
     /**
      * A list of contacts which the current user has blocked.
      */
@@ -278,9 +181,9 @@ export interface ChatService {
      */
     readonly beforeSendMessage$: Observable<Element>;
     /**
-     * Observable to hook at before online actions
+     * Observable to hook at before online actions, emitting the jid which will be used for the login
      */
-    readonly onBeforeOnline$: Observable<void>;
+    readonly onBeforeOnline$: Observable<string>;
     /**
      * Observable for clean up actions after going offline
      */
@@ -376,7 +279,7 @@ export interface ChatService {
 
     declineRoomInvite(jid: JID): void;
 
-    queryRoomUserList(roomJid: JID): Promise<RoomUser[]>;
+    queryRoomUserList(roomJid: JID): Promise<RoomOccupant[]>;
 
     getRoomConfiguration(roomJid: JID): Promise<Form>;
 
@@ -400,7 +303,7 @@ export interface ChatService {
 
     revokeModeratorStatusForRoom(occupantNick: string, roomJid: JID, reason?: string): Promise<void>;
 
-    queryAllRooms(): Promise<RoomSummary[]>;
+    queryAllRooms(): Promise<Room[]>;
 
     loadMostRecentUnloadedMessages(recipient: Recipient): void;
 

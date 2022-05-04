@@ -1,6 +1,6 @@
 import {Inject, Injectable, NgZone} from '@angular/core';
 import {jid as parseJid} from '@xmpp/client';
-import {BehaviorSubject, combineLatest, merge, Observable, Subject} from 'rxjs';
+import {BehaviorSubject, combineLatest, merge, Observable, ReplaySubject, Subject} from 'rxjs';
 import {filter, first, map} from 'rxjs/operators';
 import {Contact} from '../../core/contact';
 import {dummyAvatarContact} from '../../core/contact-avatar';
@@ -16,9 +16,6 @@ import {
     ChatService,
     ConnectionStates,
     JidToNumber,
-    RoomCreationOptions,
-    RoomSummary,
-    RoomUser
 } from './xmpp/interface/chat.service';
 import {ContactFactoryService} from './xmpp/service/contact-factory.service';
 import {LogService} from './xmpp/service/log.service';
@@ -46,6 +43,10 @@ import {PushPlugin} from './xmpp/plugins/push.plugin';
 import {ServiceDiscoveryPlugin} from './xmpp/plugins/service-discovery.plugin';
 import {ChatMessageListRegistryService} from '../components/chat-message-list-registry.service';
 import {HttpClient} from '@angular/common/http';
+import {Invitation} from './xmpp/plugins/multi-user-chat/invitation';
+import {StropheChatConnectionService} from './xmpp/service/strophe-chat-connection.service';
+import {RoomOccupant} from './xmpp/plugins/multi-user-chat/room-occupant';
+import {RoomCreationOptions} from './xmpp/plugins/multi-user-chat/room-creation-options';
 
 @Injectable()
 export class XmppChatAdapter implements ChatService {
@@ -90,14 +91,16 @@ export class XmppChatAdapter implements ChatService {
     readonly afterReceiveMessage$: Observable<Element>;
     readonly afterSendMessage$: Observable<Element>;
     readonly beforeSendMessage$: Observable<Element>;
-    readonly onBeforeOnline$: Observable<void>;
+    readonly onOnline$: Observable<void>;
+    readonly onBeforeOnline$: Observable<string>;
     readonly onOffline$: Observable<void>;
 
     private readonly afterReceiveMessageSubject = new Subject<Element>();
     private readonly afterSendMessageSubject = new Subject<Element>();
     private readonly beforeSendMessageSubject = new Subject<Element>();
-    private readonly onBeforeOnlineSubject = new Subject<void>();
-    private readonly onOfflineSubject = new Subject<void>();
+    private readonly onBeforeOnlineSubject = new ReplaySubject<string>(1);
+    private readonly onOnlineSubject = new ReplaySubject<void>(1);
+    private readonly onOfflineSubject = new ReplaySubject<void>(1);
 
 
     readonly plugins: {
@@ -140,6 +143,8 @@ export class XmppChatAdapter implements ChatService {
         return this.plugins.xmppFileUpload;
     }
 
+    readonly onInvitation$: Observable<Invitation>;
+
     get rooms$(): Observable<Room[]> {
         return this.plugins.muc.rooms$;
     }
@@ -172,6 +177,7 @@ export class XmppChatAdapter implements ChatService {
             this.afterSendMessageSubject,
             this.beforeSendMessageSubject,
             this.onBeforeOnlineSubject,
+            this.onOnlineSubject,
             this.onOfflineSubject
         );
 
@@ -191,7 +197,11 @@ export class XmppChatAdapter implements ChatService {
         this.afterReceiveMessage$ = this.afterReceiveMessageSubject.asObservable();
         this.afterSendMessage$ = this.afterSendMessageSubject.asObservable();
         this.beforeSendMessage$ = this.beforeSendMessageSubject.asObservable();
+        this.onBeforeOnline$ = this.onBeforeOnlineSubject.asObservable();
+        this.onOnline$ = this.onOnlineSubject.asObservable();
         this.onOffline$ = this.onOfflineSubject.asObservable();
+
+        this.onOffline$.subscribe(() => this.contacts$.next([]));
 
         const serviceDiscoveryPlugin = new ServiceDiscoveryPlugin(this);
         const publishSubscribePlugin = new PublishSubscribePlugin(this);
@@ -205,7 +215,7 @@ export class XmppChatAdapter implements ChatService {
         this.plugins = {
             muc: multiUserChatPlugin,
             block: new BlockPlugin(this),
-            bookmark: new BookmarkPlugin(publishSubscribePlugin),
+            bookmark: new BookmarkPlugin(this),
             entityCapabilities: new EntityCapabilitiesPlugin(this),
             entityTime: entityTimePlugin,
             message: messagePlugin,
@@ -218,7 +228,7 @@ export class XmppChatAdapter implements ChatService {
             pubSub: publishSubscribePlugin,
             push: new PushPlugin(this, serviceDiscoveryPlugin),
             roster: new RosterPlugin(this, logService),
-            register: new RegistrationPlugin(logService, ngZone, this.chatConnectionService),
+            register: new RegistrationPlugin(logService, this.chatConnectionService as StropheChatConnectionService),
             disco: serviceDiscoveryPlugin,
             unreadMessageCount: unreadMessageCountPlugin,
             xmppFileUpload: new XmppHttpFileUploadHandler(httpClient, this, uploadServicePromise),
@@ -226,6 +236,7 @@ export class XmppChatAdapter implements ChatService {
 
         this.currentLoggedInUserJid$ = combineLatest([this.chatConnectionService.state$, this.currentLoggedInUserJidSubject])
             .pipe(filter(([state, jid]) => state === 'online' && jid != null), map(([, jid]) => jid));
+        this.onInvitation$ = this.plugins.muc.invitation$;
     }
 
     async blockJid(bareJid: string): Promise<void> {
@@ -245,7 +256,7 @@ export class XmppChatAdapter implements ChatService {
         await this.plugins.muc.declineRoomInvite(jid);
     }
 
-    async queryRoomUserList(roomJid: JID): Promise<RoomUser[]> {
+    async queryRoomUserList(roomJid: JID): Promise<RoomOccupant[]> {
         return await this.plugins.muc.queryUserList(roomJid);
     }
 
@@ -286,10 +297,6 @@ export class XmppChatAdapter implements ChatService {
              }
              this.state$.next('disconnected');
          }*/
-    }
-
-    private onOffline() {
-        this.contacts$.next([]);
     }
 
     private async announceAvailability() {
@@ -339,12 +346,16 @@ export class XmppChatAdapter implements ChatService {
             await this.chatConnectionService.logIn(logInRequest);
             const {username, domain} = logInRequest;
             this.currentLoggedInUserJidSubject.next(`${username}@${domain}`.toLowerCase());
+            await this.plugins.disco.servicesInitialized$.pipe(first()).toPromise();
+            await this.onOnline$.pipe(first()).toPromise()
         }
     }
 
     async logOut(): Promise<void> {
         await this.chatConnectionService.logOut();
         this.currentLoggedInUserJidSubject.next(null);
+        await this.onOffline$.pipe(first()).toPromise();
+        console.log('OFFLINE FIRED')
     }
 
     async sendMessage(recipient: Recipient, body: string) {
@@ -403,8 +414,9 @@ export class XmppChatAdapter implements ChatService {
         await this.plugins.muc.kickOccupant(nick, roomJid, reason);
     }
 
-    async leaveRoom(occupantJid: JID, status?: string): Promise<void> {
-        await this.plugins.muc.leaveRoom(occupantJid, status);
+    async leaveRoom(roomJid: JID, status?: string): Promise<void> {
+        await this.plugins.muc.leaveRoom(roomJid, status);
+        await this.plugins.muc.leftRoom$.pipe(filter(roomJid => roomJid.equals(roomJid)), first()).toPromise();
     }
 
     async retrieveSubscriptions(): Promise<Map<string, string[]>> {
@@ -423,8 +435,12 @@ export class XmppChatAdapter implements ChatService {
         await this.plugins.muc.kickOccupant(nick, roomJid, reason);
     }
 
-    async queryAllRooms(): Promise<RoomSummary[]> {
+    async queryAllRooms(): Promise<Room[]> {
         return await this.plugins.muc.queryAllRooms();
+    }
+
+    async getRooms(): Promise<Room[]> {
+        return await this.plugins.muc.getRooms();
     }
 
     async changeRoomSubject(roomJid: JID, subject: string): Promise<void> {

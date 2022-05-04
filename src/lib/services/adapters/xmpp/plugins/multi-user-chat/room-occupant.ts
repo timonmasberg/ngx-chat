@@ -3,7 +3,7 @@ import { Affiliation } from './affiliation';
 import { Role } from './role';
 
 export interface RoomOccupant {
-    occupantJid: JID;
+    jid: JID;
     affiliation: Affiliation;
     nick: string;
     role: Role;

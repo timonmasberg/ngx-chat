@@ -7,12 +7,10 @@ import {
     JID,
     Room,
     RoomCreationOptions,
-    RoomSummary,
-    RoomUser,
 } from '@pazznetwork/ngx-chat';
 import {jid} from '@xmpp/jid';
 import {NgModel} from '@angular/forms';
-import { MUC_SUB_EVENT_TYPE } from 'src/public-api';
+import {MUC_SUB_EVENT_TYPE, RoomOccupant} from 'src/public-api';
 
 @Component({
     selector: 'app-multi-user-chat',
@@ -25,8 +23,8 @@ export class MultiUserChatComponent {
     occupantJidText: string;
     occupantJid: JID | null = null;
     selectedRoom: Room;
-    allRooms: RoomSummary[] = [];
-    roomUserList: RoomUser[] = [];
+    allRooms: Room[] = [];
+    roomUserList: RoomOccupant[] = [];
     newRoom?: RoomCreationOptions;
     mucSubSubscriptions = new Map<string, string[]>();
     roomConfiguration: Form;
@@ -69,15 +67,12 @@ export class MultiUserChatComponent {
         this.roomConfiguration = await this.chatService.getRoomConfiguration(occupantJid.bare());
     }
 
-    displayMemberJid(member: RoomUser): string {
-        return member.userIdentifiers[0].userJid.bare().toString();
+    displayMemberJid(member: RoomOccupant): string {
+        return member.jid.bare().toString();
     }
 
-    displayMemberNicks(member: RoomUser): string {
-        const nicks = new Set(member.userIdentifiers
-            .filter(id => id.nick != null)
-            .map(id => id.nick));
-        return [...nicks].join(', ');
+    displayMemberNicks(member: RoomOccupant): string {
+        return member.nick;
     }
 
     async destroyRoom(occupantJid: JID) {
@@ -115,17 +110,17 @@ export class MultiUserChatComponent {
         this.newRoom = undefined;
     }
 
-    findIdWithNick(member: RoomUser) {
-        return member.userIdentifiers.find(id => id.nick != null);
+    findIdWithNick(member: RoomOccupant) {
+        return member;
     }
 
-    async kick(member: RoomUser) {
+    async kick(member: RoomOccupant) {
         const {nick} = this.findIdWithNick(member);
         await this.chatService.kickOccupant(nick, this.selectedRoom.jidBare);
     }
 
-    async banOrUnban(member: RoomUser) {
-        const memberJid = member.userIdentifiers[0].userJid.bare();
+    async banOrUnban(member: RoomOccupant) {
+        const memberJid = member.jid.bare();
         if (member.affiliation === Affiliation.outcast) {
             await this.chatService.unbanUserForRoom(memberJid, this.selectedRoom.jidBare);
             return;

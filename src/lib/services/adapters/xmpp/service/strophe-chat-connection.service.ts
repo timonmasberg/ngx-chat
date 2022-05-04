@@ -8,20 +8,30 @@ import {Strophe} from 'strophe.js';
 import {ChatConnection, ChatConnectionFactory} from '../interface/chat-connection';
 import {StropheStanzaBuilder} from '../strophe-stanza-builder';
 import {StropheConnection} from '../strophe-connection';
+import {filter, tap} from 'rxjs/operators';
+import {XmppResponseError} from '../shared/xmpp-response.error';
 
 export type XmppChatStates = 'disconnected' | 'online' | 'reconnecting';
 
 @Injectable()
 export class StropheChatConnectionFactory implements ChatConnectionFactory {
-    create(logService: LogService, afterReceiveMessageSubject: Subject<Element>, afterSendMessageSubject: Subject<Element>, beforeSendMessageSubject: Subject<Element>, onBeforeOnlineSubject: Subject<void>, onOfflineSubject: Subject<void>): ChatConnection {
+    create(logService: LogService,
+           afterReceiveMessageSubject: Subject<Element>,
+           afterSendMessageSubject: Subject<Element>,
+           beforeSendMessageSubject: Subject<Element>,
+           onBeforeOnlineSubject: Subject<string>,
+           onOnlineSubject: Subject<void>,
+           onOfflineSubject: Subject<void>
+    ): ChatConnection {
         return new StropheChatConnectionService(
             logService,
             afterReceiveMessageSubject,
             afterSendMessageSubject,
             beforeSendMessageSubject,
             onBeforeOnlineSubject,
+            onOnlineSubject,
             onOfflineSubject
-        )
+        );
     }
 }
 
@@ -33,6 +43,9 @@ export class StropheChatConnectionFactory implements ChatConnectionFactory {
  */
 export class StropheChatConnectionService implements ChatConnection {
 
+    private readonly userJidSubject = new BehaviorSubject<string>(null);
+
+    // TODO: Delete
     readonly state$ = new BehaviorSubject<XmppChatStates>('disconnected');
     readonly stanzaUnknown$ = new Subject<Stanza>();
 
@@ -48,12 +61,18 @@ export class StropheChatConnectionService implements ChatConnection {
         protected readonly afterReceiveMessageSubject: Subject<Element>,
         protected readonly afterSendMessageSubject: Subject<Element>,
         protected readonly beforeSendMessageSubject: Subject<Element>,
-        protected readonly onBeforeOnlineSubject: Subject<void>,
+        protected readonly onBeforeOnlineSubject: Subject<string>,
+        protected readonly onOnlineSubject: Subject<void>,
         protected readonly onOfflineSubject: Subject<void>,
     ) {
+        this.userJid$ = this.userJidSubject.pipe(filter(jid => jid != null));
     }
 
     addHandler(handler: (stanza: Element) => boolean, identifier?: { ns?: string, name?: string, type?: string, id?: string, from?: string }, options?: { matchBareFromJid: boolean, ignoreNamespaceFragment: boolean }) {
+        if (!identifier) {
+            return this.connection.addHandler(handler);
+        }
+
         const {ns, name, type, id, from} = identifier;
         return this.connection.addHandler(handler, ns, name, type, id, from, options);
     }
@@ -64,12 +83,10 @@ export class StropheChatConnectionService implements ChatConnection {
 
     onOnline(jid: JID): void {
         this.logService.info('online =', 'online as', jid.toString());
-        this.addHandler((stanza) => {
-            this.stanzaUnknown$.next(stanza);
-            return true;
-        });
         this.userJid = jid;
+        this.userJidSubject.next(jid.toString());
         this.state$.next('online');
+        this.onOnlineSubject.next();
     }
 
     protected onOffline(): void {
@@ -81,22 +98,25 @@ export class StropheChatConnectionService implements ChatConnection {
         if (logInRequest.username.indexOf('@') > -1) {
             this.logService.warn('username should not contain domain, only local part, this can lead to errors!');
         }
-        this.onBeforeOnlineSubject.next();
-        this.connection = await StropheConnection.createConnection(this.logService, {domain: logInRequest.domain});
-        // @TODO: Check if necessary
-        this.connection.addHandler((el) => this.afterReceiveMessageSubject.next(el), null, 'message')
-
+        const jid = logInRequest.username + '@' + logInRequest.domain;
+        const connectionURLs = {
+            domain: logInRequest.domain,
+            boshServiceUrl: logInRequest.service.includes('ws:\\\\') ? undefined : logInRequest.service,
+            websocketUrl: logInRequest.service.includes('ws:\\\\') ? logInRequest.service : undefined,
+        };
+        this.connection = await StropheConnection.createConnection(this.logService, connectionURLs);
         return new Promise((resolve, reject) => {
-            const jid = logInRequest.username + '@' + logInRequest.domain;
             this.connection.connect(jid, logInRequest.password, (status: Strophe.Status, value: string) => {
                 this.logService.info('status update =', status, value ? JSON.stringify(value) : '');
                 switch (status) {
-                    case Strophe.Status.AUTHENTICATING:
                     case Strophe.Status.REDIRECT:
                     case Strophe.Status.ATTACHED:
                     case Strophe.Status.CONNECTING:
                         break;
+                    case Strophe.Status.AUTHENTICATING:
+                        break;
                     case Strophe.Status.CONNECTED:
+                        this.onBeforeOnlineSubject.next(jid);
                         this.onOnline(new JID(logInRequest.username, logInRequest.domain));
                         resolve();
                         break;
@@ -108,11 +128,18 @@ export class StropheChatConnectionService implements ChatConnection {
                         this.onOffline();
                         reject('connection failed with status code: ' + status);
                         break;
+                    case Strophe.Status.BINDREQUIRED:
+                        this.connection.bind();
+                        break;
                     case Strophe.Status.DISCONNECTING:
                     case Strophe.Status.DISCONNECTED:
+                        this.onOffline();
                         break;
+                    default:
+                        this.logService.error('Unhandled connection status: ', status)
                 }
             });
+            this.connection.addHandler((el) => this.afterReceiveMessageSubject.next(el), null, 'message');
         });
     }
 
@@ -148,8 +175,8 @@ export class StropheChatConnectionService implements ChatConnection {
         return this.$build(
             'iq',
             attrs,
-            async (el: Element) => this.connection.send(el),
-            async (el: Element) => new Promise<Element>((resolve, reject) => this.connection.sendIQ(el, resolve, reject))
+            async (el: Element) => this.connection.sendIQ(el),
+            async (el: Element) => new Promise<Element>((resolve, reject) => this.connection.sendIQ(el, resolve, (el) => reject(XmppResponseError.create(el))))
         );
     }
 
@@ -174,8 +201,8 @@ export class StropheChatConnectionService implements ChatConnection {
         return this.$build(
             'presence',
             attrs,
-            async (el: Element) => this.connection.send(el),
-            async (el: Element) => new Promise<Element>((resolve, reject) => this.connection.sendPresence(el, resolve, reject))
+            async (el: Element) => this.connection.sendPresence(el),
+            async (el: Element) => new Promise<Element>((resolve, reject) => this.connection.sendPresence(el, resolve, (el) => reject(XmppResponseError.create(el))))
         );
     }
 }

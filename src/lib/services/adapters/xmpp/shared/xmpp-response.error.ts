@@ -3,22 +3,18 @@ import {Finder} from './finder';
 
 export class XmppResponseError extends Error {
     static readonly ERROR_ELEMENT_NS = 'urn:ietf:params:xml:ns:xmpp-stanzas';
-    readonly errorCode?: number;
-    readonly errorType?: string;
-    readonly errorCondition?: string;
 
-    constructor(readonly errorStanza: Stanza) {
-        super(
-            XmppResponseError.extractErrorTextFromErrorResponse(
-                errorStanza,
-                XmppResponseError.extractErrorDataFromErrorResponse(errorStanza),
-            ),
-        );
+    private constructor(errorMessage: string, readonly errorStanza: Stanza,
+                        readonly errorCode?: number,
+                        readonly errorType?: string,
+                        readonly errorCondition?: string) {
+        super(errorMessage);
+    }
 
+    static create(errorStanza: Stanza): XmppResponseError {
         const {code, type, condition} = XmppResponseError.extractErrorDataFromErrorResponse(errorStanza);
-        this.errorCode = code;
-        this.errorType = type;
-        this.errorCondition = condition;
+        const errorMessage = XmppResponseError.extractErrorTextFromErrorResponse(errorStanza, {code, type, condition});
+        return new XmppResponseError(errorMessage, errorStanza, code, type, condition);
     }
 
     private static extractErrorDataFromErrorResponse(stanza: Stanza): {
@@ -26,7 +22,7 @@ export class XmppResponseError extends Error {
         type?: string,
         condition?: string
     } {
-        const errorElement = Finder.create(stanza).searchByTag('error').result;
+        const errorElement = stanza.querySelector('error');
         const errorCode = Number(errorElement?.getAttribute('code')) || undefined;
         const errorType = errorElement?.getAttribute('type') as string | undefined;
         const errorCondition =
@@ -55,6 +51,14 @@ export class XmppResponseError extends Error {
             `errorType: ${type ?? '[unknown]'}`,
             `errorCondition: ${condition ?? '[unknown]'}`,
         ].join(', ');
+
+        console.log('FOUND IN ERROR: ',  Finder
+            .create(stanza)
+            ?.searchByTag('error')
+            ?.searchByTag('text')
+            ?.searchByNamespace(XmppResponseError.ERROR_ELEMENT_NS)
+            ?.result)
+
         const stanzaError = Finder
             .create(stanza)
             ?.searchByTag('error')

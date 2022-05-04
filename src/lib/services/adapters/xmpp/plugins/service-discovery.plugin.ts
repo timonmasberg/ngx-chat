@@ -1,20 +1,12 @@
-import {BehaviorSubject} from 'rxjs';
-import {first} from 'rxjs/operators';
+import {BehaviorSubject, combineLatest, Observable, ReplaySubject} from 'rxjs';
+import {filter, first, map} from 'rxjs/operators';
 import {XmppChatAdapter} from '../../xmpp-chat-adapter.service';
 import {ChatPlugin} from '../../../../core/plugin';
-import {nsPubSubOptions} from './publish-subscribe.plugin';
-import {nsBlocking} from './block.plugin';
-import {nsMucSub} from './muc-sub.plugin';
-
-export interface IdentityAttrs {
-    category: string;
-    type: string;
-    name?: string;
-}
 
 export interface Service {
     jid: string;
-    identitiesAttrs: IdentityAttrs[];
+    // string in format category.type
+    identities: string[];
     features: string[];
 }
 
@@ -24,81 +16,66 @@ export const nsDiscoItems = `${nsDisco}#items`;
 
 /**
  * see XEP-0030 Service Discovery
+ * https://xmpp.org/extensions/xep-0030.html
  */
 export class ServiceDiscoveryPlugin implements ChatPlugin {
 
     readonly nameSpace = nsDisco;
 
-    private readonly servicesInitialized$ = new BehaviorSubject(false);
-    private hostedServices: Service[] = [];
-    private readonly resourceCache = new Map<string, Service>();
+    readonly servicesInitialized$: Observable<void>;
+    private readonly servicesInitializationSubject = new ReplaySubject<void>(1);
+    private readonly onlineSubject = new BehaviorSubject<boolean>(false);
+
+    private readonly identityToService = new Map<string, Service>();
+    private readonly jidToService = new Map<string, Service>();
 
     constructor(private readonly chatAdapter: XmppChatAdapter) {
-    }
 
-    async onBeforeOnline(): Promise<void> {
-        await this.discoverServices(await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise());
-        this.servicesInitialized$.next(true);
-    }
+        // TODO: Change to service/host changed Hook
+        chatAdapter.onBeforeOnline$.subscribe(async (jid) => {
+            const domain = jid.split('@')[1].split('/')[0];
+            await this.discoverServiceInformation(domain);
+            await this.discoverServiceItems(jid, domain);
+            this.servicesInitializationSubject.next();
+            this.onlineSubject.next(true);
+        });
 
-    onOffline(): void {
-        this.servicesInitialized$.next(false);
-        this.hostedServices = [];
-        this.resourceCache.clear();
-    }
+        chatAdapter.onOffline$.subscribe(() => {
+            this.onlineSubject.next(false);
+            this.identityToService.clear();
+            this.jidToService.clear();
+        });
 
-    async determineSupportedPlugins() {
-        const userJid = await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
-        // @TODO: move the plugin support checks here to return plugins to initialized
-        const pubsub = (await this.findService('pubsub', 'pep')).features.includes(nsPubSubOptions);
-        const blocking = await this.supportsFeature(userJid, nsBlocking);
-        const mucSub = (await this.findService('conference', 'text')).features.includes(nsMucSub);
-        const mam = await this.supportsFeature(userJid, this.nameSpace,);
-        return {pubsub, blocking, mucSub, mam};
+        this.servicesInitialized$ = combineLatest([this.onlineSubject, this.servicesInitializationSubject])
+            .pipe(filter(([online]) => online), map(() => {
+            }));
     }
 
     async supportsFeature(jid: string, searchedFeature: string): Promise<boolean> {
+        await this.servicesInitialized$.pipe(first()).toPromise();
 
-        return new Promise((resolve, reject) => {
-
-            this.servicesInitialized$.pipe(first(value => !!value)).subscribe(async () => {
-                try {
-                    const service = this.resourceCache.get(jid) || await this.discoverServiceInformation(jid);
-                    if (!service) {
-                        reject(new Error('no service found for jid ' + jid));
-                    }
-                    resolve(service.features.includes(searchedFeature));
-                } catch (e) {
-                    reject(e);
-                }
-            });
-
-        });
-
+        const service = this.jidToService.get(jid) || await this.discoverServiceInformation(jid);
+        return service.features.includes(searchedFeature);
     }
 
+    // TODO: into key collection(Enum) of used and tested keys
     async findService(category: string, type: string): Promise<Service> {
-        return new Promise((resolve, reject) => {
-            this.servicesInitialized$.pipe(first(value => !!value)).subscribe(() => {
-                const results = this.hostedServices.filter(service =>
-                    service.identitiesAttrs.filter(identityAttrs => identityAttrs.category === category
-                        && identityAttrs.type === type).length > 0,
-                );
+        return this.servicesInitialized$.pipe(map(() => {
+            const key = category + '.' + type;
 
-                if (results.length === 0) {
-                    reject(new Error(`no service matching category ${category} and type ${type} found!`));
-                } else if (results.length > 1) {
-                    reject(new Error(`multiple services matching category ${category} and type ${type} found! ${JSON.stringify(results)}`));
-                } else {
-                    return resolve(results[0]);
-                }
-            });
-        });
+            if (!this.identityToService.has(key)) {
+                throw new Error(`no service matching category ${category} and type ${type} found!`);
+            }
+
+            return this.identityToService.get(key);
+        })).pipe(first()).toPromise();
     }
 
-    private async discoverServices(mainDomain: string): Promise<void> {
-        const to = await this.chatAdapter.chatConnectionService.userJid$.pipe(first()).toPromise();
-        const serviceListResponse = await this.sendDiscoQuery(nsDiscoItems, to);
+    private async discoverServiceItems(jid: string, domain: string): Promise<void> {
+        const serviceListResponse = await this.chatAdapter.chatConnectionService
+            .$iq({type: 'get', from: jid, to: domain})
+            .c('query', {xmlns: nsDiscoItems})
+            .sendAwaitingResponse();
 
         const serviceDomains = new Set(
             Array.from(serviceListResponse
@@ -106,53 +83,33 @@ export class ServiceDiscoveryPlugin implements ChatPlugin {
                 .querySelectorAll('item')
             ).map((itemNode: Element) => itemNode.getAttribute('jid')),
         );
-        serviceDomains.add(mainDomain);
 
-        const discoveredServices: Service[] = await Promise.all(
+        await Promise.all(
             [...serviceDomains.keys()]
                 .map((serviceDomain) => this.discoverServiceInformation(serviceDomain)),
         );
-        this.hostedServices.push(...discoveredServices);
     }
 
     private async discoverServiceInformation(serviceDomain: string): Promise<Service> {
-        const serviceInformationResponse = await this.sendDiscoQuery(nsDiscoInfo, serviceDomain);
+        const serviceInformationResponse = await this.chatAdapter.chatConnectionService
+            .$iq({type: 'get', to: serviceDomain})
+            .c('query', {xmlns: nsDiscoInfo})
+            .sendAwaitingResponse();
 
         const queryNode = serviceInformationResponse.querySelector('query');
         const features = Array.from(queryNode.querySelectorAll('feature')).map((featureNode: Element) => featureNode.getAttribute('var'));
-        const identitiesAttrs = Array.from(queryNode
-            .querySelectorAll('identity'))
-            .filter((identityNode: Element) => identityNode.getAttributeNames().length > 0)
-            .map((identityNode: Element) => identityNode.getAttributeNames()
-                .reduce((acc, name) => ({...acc, [name]: identityNode.getAttribute(name)}), {}));
+        const identities = Array.from(queryNode.querySelectorAll('identity'));
 
         const from = serviceInformationResponse.getAttribute('from');
         const serviceInformation: Service = {
-            identitiesAttrs: this.isIdentitiesAttrs(identitiesAttrs) ? identitiesAttrs : [],
+            identities: identities.map(identity => identity.getAttribute('category') + '.' + identity.getAttribute('type')),
             features,
             jid: from,
         };
-        this.resourceCache.set(from, serviceInformation);
+        this.jidToService.set(from, serviceInformation);
+        for (const identity of serviceInformation.identities) {
+            this.identityToService.set(identity, serviceInformation)
+        }
         return serviceInformation;
-    }
-
-    private async sendDiscoQuery(xmlns: string, to?: string): Promise<Element> {
-        return await this.chatAdapter.chatConnectionService
-            .$iq({type: 'get', ...(to ? {to} : {})})
-            .c('query', {xmlns: xmlns})
-            .sendAwaitingResponse();
-    }
-
-    private isIdentitiesAttrs(elements: { [attrName: string]: any }[]): elements is IdentityAttrs[] {
-        return elements.every((element) => {
-            const keys = Object.keys(element);
-            const mustHave = keys.includes('category') && keys.includes('type');
-            if (keys.length === 2) {
-                return mustHave;
-            } else if (keys.length === 3) {
-                return mustHave && keys.includes('name');
-            }
-            return false;
-        });
     }
 }

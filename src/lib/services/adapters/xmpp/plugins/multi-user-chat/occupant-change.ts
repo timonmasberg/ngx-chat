@@ -8,6 +8,7 @@ export type OccupantChangeType =
     | 'banned'
     | 'changedNick'
     | 'lostMembership'
+    | 'roomMemberOnly'
     | 'modified';
 
 export type OccupantChange = OccupantKickedOrBannedChange | OccupantNickChange | OccupantModifiedChange | OccupantChangeOther;

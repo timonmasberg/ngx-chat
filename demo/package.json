@@ -16,7 +16,7 @@
     "@types/ltx": "2.8.2",
     "@types/strophe.js": "1.2.4",
     "@xmpp/client": "0.13.0",
-    "rxjs": "~6.6.0",
+    "rxjs": "7.5.5",
     "tslib": "2.3.1",
     "jingle": "3.0.3",
     "js-sha1": "^0.6.0",

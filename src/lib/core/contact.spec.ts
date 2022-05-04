@@ -82,7 +82,7 @@ describe('contact', () => {
         expect(contact.messages.map(m => m.datetime.getTime())).toEqual([1400, 1500, 1700]);
     });
 
-    function createMessageForDate(date) {
+    function createMessageForDate(date: number) {
         return {
             datetime: new Date(new Date(date)),
             body: '',

@@ -111,7 +111,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <ng-container *ngFor="let field of room.roomInfo.fields">
+                    <ng-container *ngFor="let field of room.info">
                         <tr *ngIf="field.type !== 'hidden'">
                             <td>{{field.variable}}</td>
                             <td>{{field.value}}</td>

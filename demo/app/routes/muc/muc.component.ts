@@ -6,7 +6,6 @@ import {
     JID,
     Room,
     RoomOccupant,
-    RoomSummary,
 } from '@pazznetwork/ngx-chat';
 import { from, Observable, Subject } from 'rxjs';
 import { jid } from '@xmpp/client';
@@ -29,7 +28,7 @@ export class MucComponent implements OnInit, OnDestroy {
     memberJid = '';
     moderatorNick = '';
 
-    rooms$: Observable<RoomSummary[]>;
+    rooms$: Observable<Room[]>;
     readonly state$: Observable<ConnectionStates> = this.chatService.state$.asObservable();
 
     occupants$: Observable<RoomOccupant[]>;
@@ -79,7 +78,7 @@ export class MucComponent implements OnInit, OnDestroy {
                 const {change, occupant, isCurrentUser} = occupantChange;
                 if (occupantChange.change === 'modified') {
                     console.log(
-                        `change=${change}, modified=${occupant.occupantJid.toString()}, currentUser=${isCurrentUser}`,
+                        `change=${change}, modified=${occupant.jid.toString()}, currentUser=${isCurrentUser}`,
                         occupant,
                         occupantChange.oldOccupant,
                     );

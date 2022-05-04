@@ -9,9 +9,9 @@ import {ServiceDiscoveryPlugin} from './service-discovery.plugin';
 import {nsPubSubEvent} from './publish-subscribe.plugin';
 import {MessagePlugin} from './message.plugin';
 import {Form, serializeToSubmitForm} from '../../../../core/form';
-import {MUC_SUB_EVENT_TYPE} from '../interface/chat.service';
 import {ChatPlugin} from '../../../../core/plugin';
 import {Finder} from '../shared/finder';
+import {MUC_SUB_EVENT_TYPE} from './multi-user-chat/muc-sub-event-type';
 
 const nsMAM = 'urn:xmpp:mam:2';
 
@@ -52,7 +52,7 @@ export class MessageArchivePlugin implements ChatPlugin {
 
     async loadMostRecentUnloadedMessages(recipient: Recipient): Promise<void> {
         // for user-to-user chats no to-attribute is necessary, in case of multi-user-chats it has to be set to the bare room jid
-        const to = recipient.recipientType === 'room' ? recipient.roomJid.toString() : undefined;
+        const to = recipient.recipientType === 'room' ? recipient.jid.toString() : undefined;
 
         const form: Form = {
             type: 'submit',
@@ -129,7 +129,8 @@ export class MessageArchivePlugin implements ChatPlugin {
                 this.mamMessageReceived$.next();
             }
         } else if (type === 'groupchat' || this.multiUserChatPlugin.isRoomInvitationStanza(messageElement)) {
-            this.multiUserChatPlugin.registerHandler(messageElement, delayEl);
+            throw new Error('NOT IMPLEMENTED');
+            // this.multiUserChatPlugin.registerHandler(messageElement);
         } else {
             throw new Error(`unknown archived message type: ${type}`);
         }

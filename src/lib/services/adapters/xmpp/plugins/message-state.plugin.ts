@@ -56,7 +56,7 @@ export class MessageStatePlugin implements ChatPlugin {
                 });
             });
 
-        this.publishSubscribePlugin.publish$.subscribe((event) => this.handlePubSubEvent(event));
+        this.publishSubscribePlugin.publish$.pipe(filter((stanza) => stanza.querySelector('items')?.getAttribute('node') === this.nameSpace)).subscribe((stanza) => this.processPubSub(Array.from(stanza?.querySelectorAll('item'))));
     }
 
     async onBeforeOnline(): Promise<void> {
@@ -64,7 +64,7 @@ export class MessageStatePlugin implements ChatPlugin {
     }
 
     private async parseContactMessageStates(): Promise<void> {
-        const itemElements = await this.publishSubscribePlugin.retrieveNodeItems(STORAGE_NGX_CHAT_CONTACT_MESSAGE_STATES);
+        const itemElements = await this.publishSubscribePlugin.retrieveNodeItems(this.nameSpace);
         this.processPubSub(itemElements);
     }
 
@@ -134,7 +134,7 @@ export class MessageStatePlugin implements ChatPlugin {
     }
 
     afterReceiveMessage(messageReceived: Message, stanza: MessageWithBodyStanza, messageReceivedEvent: MessageReceivedEvent): void {
-        const messageStateElement = Array.from(stanza.querySelectorAll('message-state')).find(el => el.namespaceURI === STORAGE_NGX_CHAT_CONTACT_MESSAGE_STATES);
+        const messageStateElement = Array.from(stanza.querySelectorAll('message-state')).find(el => el.getAttribute('xmlns') === this.nameSpace);
         if (messageStateElement) {
             // we received a message state or a message via carbon from another resource, discard it
             messageReceivedEvent.discard = true;
@@ -171,7 +171,7 @@ export class MessageStatePlugin implements ChatPlugin {
     async registerHandler(stanza: Stanza): Promise<boolean> {
         const type = stanza.getAttribute('type');
         const from = stanza.getAttribute('from');
-        const stateElement = Array.from(stanza.querySelectorAll('message-state')).find(el => el.namespaceURI === STORAGE_NGX_CHAT_CONTACT_MESSAGE_STATES);
+        const stateElement = Array.from(stanza.querySelectorAll('message-state')).find(el => el.getAttribute('xmlns') === this.nameSpace);
         if (type === 'chat' && stateElement) {
             this.handleStateNotificationStanza(stateElement, from);
             return true;
@@ -218,14 +218,5 @@ export class MessageStatePlugin implements ChatPlugin {
             );
         }
         return this.jidToMessageStateDate.get(contactJid);
-    }
-
-    private handlePubSubEvent(event: Stanza): void {
-        const items: Stanza | undefined = event.querySelector('items');
-        const itemsNode = items?.getAttribute('node');
-        const itemElements: Stanza[] | undefined = Array.from(items?.querySelectorAll('item'));
-        if (itemsNode === STORAGE_NGX_CHAT_CONTACT_MESSAGE_STATES && itemElements) {
-            this.processPubSub(itemElements);
-        }
     }
 }

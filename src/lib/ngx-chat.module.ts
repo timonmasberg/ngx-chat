@@ -21,7 +21,7 @@ import {RosterRecipientComponent} from './components/roster-recipient/roster-rec
 import {IntersectionObserverDirective} from './directives/intersection-observer.directive';
 import {LinksDirective} from './directives/links.directive';
 import {XmppChatAdapter} from './services/adapters/xmpp-chat-adapter.service';
-import {CHAT_CONNECTION_FACTORY_TOKEN, ChatConnection, ChatConnectionFactory} from './services/adapters/xmpp/interface/chat-connection';
+import {CHAT_CONNECTION_FACTORY_TOKEN, ChatConnectionFactory} from './services/adapters/xmpp/interface/chat-connection';
 import {ChatBackgroundNotificationService} from './services/components/chat-background-notification.service';
 import {ChatListStateService} from './services/components/chat-list-state.service';
 import {ChatMessageListRegistryService} from './services/components/chat-message-list-registry.service';
@@ -30,9 +30,8 @@ import {ContactFactoryService} from './services/adapters/xmpp/service/contact-fa
 import {LogService} from './services/adapters/xmpp/service/log.service';
 import {FILE_UPLOAD_HANDLER_TOKEN} from './hooks/file-upload-handler';
 import {ConverseXmppChatService} from './services/adapters/converse-xmpp/converse-xmpp-chat.service';
-import {JSXCXmppChatService} from './services/adapters/jsxc-xmpp/jsxc-xmpp-chat.service';
 import {ChatMessageContactComponent} from './components/chat-message-contact/chat-message-contact.component';
-import {StropheChatConnectionFactory, StropheChatConnectionService} from './services/adapters/xmpp/service/strophe-chat-connection.service';
+import {StropheChatConnectionFactory} from './services/adapters/xmpp/service/strophe-chat-connection.service';
 
 @NgModule({
     imports: [
@@ -103,57 +102,6 @@ export class NgxChatModule {
                     provide: CHAT_CONNECTION_FACTORY_TOKEN,
                     useClass: StropheChatConnectionFactory
                 }
-            ],
-        };
-
-    }
-
-    static forRootConverse(): ModuleWithProviders<NgxChatModule> {
-
-        return {
-            ngModule: NgxChatModule,
-            providers: [
-                ChatBackgroundNotificationService,
-                ChatListStateService,
-                ChatMessageListRegistryService,
-                LogService,
-                {
-                    provide: CHAT_SERVICE_TOKEN,
-                    useClass: ConverseXmppChatService,
-                },
-                {
-                    provide: FILE_UPLOAD_HANDLER_TOKEN,
-                    deps: [CHAT_SERVICE_TOKEN],
-                    useFactory: NgxChatModule.fileUploadHandlerFactory,
-                },
-            ],
-        };
-
-    }
-
-    static forRootJSXC(): ModuleWithProviders<NgxChatModule> {
-        return {
-            ngModule: NgxChatModule,
-            providers: [
-                ChatBackgroundNotificationService,
-                ChatListStateService,
-                ChatMessageListRegistryService,
-                LogService,
-                ContactFactoryService,
-                {
-                    provide: CHAT_SERVICE_TOKEN,
-                    useClass: JSXCXmppChatService,
-                    deps: [
-                        LogService,
-                        ContactFactoryService
-                    ],
-
-                },
-                {
-                    provide: FILE_UPLOAD_HANDLER_TOKEN,
-                    deps: [CHAT_SERVICE_TOKEN],
-                    useFactory: NgxChatModule.fileUploadHandlerFactory,
-                },
             ],
         };
 

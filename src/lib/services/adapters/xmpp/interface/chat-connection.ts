@@ -102,7 +102,8 @@ export interface ChatConnectionFactory {
         afterReceiveMessageSubject: Subject<Element>,
         afterSendMessageSubject: Subject<Element>,
         beforeSendMessageSubject: Subject<Element>,
-        onBeforeOnlineSubject: Subject<void>,
+        onBeforeOnlineSubject: Subject<string>,
+        onOnlineSubject: Subject<void>,
         onOfflineSubject: Subject<void>,
     ): ChatConnection;
 }

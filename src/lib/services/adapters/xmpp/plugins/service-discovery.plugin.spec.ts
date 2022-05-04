@@ -74,7 +74,6 @@ describe('service discovery plugin', () => {
         });
 
         // when
-        await serviceDiscoveryPlugin.onBeforeOnline();
         const service = await serviceDiscoveryPlugin.findService('conference', 'text');
 
         // then

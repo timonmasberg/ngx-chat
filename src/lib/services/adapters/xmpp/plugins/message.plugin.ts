@@ -100,8 +100,8 @@ export class MessagePlugin implements ChatPlugin {
 
         const invites = Array.from(messageStanza.querySelectorAll('x'));
         const isRoomInviteMessage =
-            invites.find(el => el.namespaceURI === nsMucUser)
-            || invites.find(el => el.namespaceURI === nsConference);
+            invites.find(el => el.getAttribute('xmlns') === nsMucUser)
+            || invites.find(el => el.getAttribute('xmlns') === nsConference);
 
         if (isRoomInviteMessage) {
             contact.pendingRoomInvite$.next(this.extractInvitationFromMessage(messageStanza));
@@ -114,7 +114,7 @@ export class MessagePlugin implements ChatPlugin {
 
     private extractInvitationFromMessage(messageStanza: MessageWithBodyStanza): Invitation {
         const invitations = Array.from(messageStanza.querySelectorAll('x'));
-        const mediatedInvitation = invitations.find(el => el.namespaceURI === nsMucUser);
+        const mediatedInvitation = invitations.find(el => el.getAttribute('xmlns') === nsMucUser);
         if (mediatedInvitation) {
             const inviteEl = mediatedInvitation.querySelector('invite');
             return {
@@ -125,7 +125,7 @@ export class MessagePlugin implements ChatPlugin {
             };
         }
 
-        const directInvitation = invitations.find(el => el.namespaceURI === nsConference);
+        const directInvitation = invitations.find(el => el.getAttribute('xmlns') === nsConference);
         if (directInvitation) {
             return {
                 from: parseJid(messageStanza.getAttribute('from')),

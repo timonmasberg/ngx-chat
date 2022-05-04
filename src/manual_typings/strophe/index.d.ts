@@ -863,7 +863,6 @@ declare global {
              *    The string representation.
              */
             private toString();
-
         }
 
         /**
@@ -1107,6 +1106,10 @@ declare global {
             servtype: string;
 
             mock: boolean;
+            /**
+             * protocol used for connection
+             */
+            _proto: Strophe.Websocket | Strophe.Bosh | Strophe.WorkerWebsocket;
 
             /** Constructor: Strophe.Connection
              *  Create and initialize a Strophe.Connection object.
@@ -1803,9 +1806,16 @@ declare global {
              *    @param condition - the error condition or null
              *    @param elem - The triggering stanza.
              */
-            _changeConnectStatus(status: number, condition?: string, elem?: Element)
+            _changeConnectStatus(status: number, condition?: string, elem?: Element): void;
 
-            _dataRecv(data, req);
+            /** PrivateFunction: _dataRecv
+             *  _Private_ function that handles the different data packages from the different connections.
+             *
+             *  Parameters:
+             *    @param data - packages from the connection
+             *    @param req - the request used for the connection
+             */
+            _dataRecv(data: any, req: any): void;
         }
 
         /** Class: Strophe.WebSocket
@@ -1868,6 +1878,83 @@ declare global {
              * @param route - The optional route value.
              */
             private _connect(wait?: number, hold?: number, route?: string);
+        }
+
+        /** Class: Strophe.WorkerWebsocket
+         *  _Private_ helper class that handles a websocket connection inside a shared worker.
+         */
+        class WorkerWebsocket extends Websocket {
+            /** PrivateConstructor: Strophe.WorkerWebsocket
+             *  Create and initialize a Strophe.WorkerWebsocket object.
+             *
+             *  Parameters:
+             *    @param connection - The Strophe.Connection
+             *
+             *  Returns:
+             *   @returns A new Strophe.WorkerWebsocket object.
+             */
+            constructor (connection: Connection);
+
+            /** PrivateFunction: _replaceMessageHandler
+             *
+             * Called by _onInitialMessage in order to replace itself with the general message handler.
+             * This method is overridden by Strophe.WorkerWebsocket, which manages a
+             * websocket connection via a service worker and doesn't have direct access
+             * to the socket.
+             */
+            _replaceMessageHandler(): void;
+
+            /** PrivateFunction: _onWorkerMessage
+             * _Private_ function that handles messages received from the service worker
+             */
+            _onWorkerMessage (ev:{data:[method_name: '_onMessage', message: string] | [method_name: 'log', message: string]});
+        }
+
+        /** PrivateClass: Strophe.Request
+         *  _Private_ helper class that provides a cross implementation abstraction
+         *  for a BOSH related XMLHttpRequest.
+         *
+         *  The Strophe.Request class is used internally to encapsulate BOSH request
+         *  information.  It is not meant to be used from user's code.
+         */
+        class Request {
+
+            /** PrivateConstructor: Strophe.Request
+             *  Create and initialize a new Strophe.Request object.
+             *
+             *  Parameters:
+             *    @param elem - The XML data to be sent in the request.
+             *    @param func - The function that will be called when the
+             *      XMLHttpRequest readyState changes.
+             *    @param rid - The BOSH rid attribute associated with this request.
+             *    @param sends - The number of times this same request has been sent.
+             */
+            constructor(elem: Element, func: (req: Request) => void, rid: number, sends: number);
+
+            /** PrivateFunction: getResponse
+             *  Get a response from the underlying XMLHttpRequest.
+             *
+             *  This function attempts to get a response from the request and checks
+             *  for errors.
+             *
+             *  Throws:
+             *    "parsererror" - A parser error occured.
+             *    "bad-format" - The entity has sent XML that cannot be processed.
+             *
+             *  Returns:
+             *    @returns The DOM element tree of the response.
+             */
+            getResponse(): Element;
+
+            /** PrivateFunction: _newXHR
+             *  _Private_ helper function to create XMLHttpRequests.
+             *
+             *  This function creates XMLHttpRequests across all implementations.
+             *
+             *  Returns:
+             *   @returns  A new XMLHttpRequest.
+             */
+            _newXHR(): XMLHttpRequest;
         }
 
         /** Interface: Strophe.SASLMechanism

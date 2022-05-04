@@ -41,22 +41,22 @@ describe('XmppChatAdapter', () => {
 
     describe('contact management', () => {
 
-        it('#getContactById() should ignore resources', () => {
+        it('#getContactById() should ignore resources', async () => {
             chatService.contacts$.next(contacts);
-            expect(chatService.getContactById('test2@example.com/test123')).toEqual(contact2);
+            expect(await chatService.getContactById('test2@example.com/test123')).toEqual(contact2);
         });
 
-        it('#getContactById() should return the correct contact', () => {
+        it('#getContactById() should return the correct contact', async () => {
             chatService.contacts$.next(contacts);
 
-            expect(chatService.getContactById('test@example.com')).toEqual(contact1);
+            expect(await chatService.getContactById('test@example.com')).toEqual(contact1);
 
-            expect(chatService.getContactById('test2@example.com')).toEqual(contact2);
+            expect(await chatService.getContactById('test2@example.com')).toEqual(contact2);
         });
 
-        it('#getContactById() should return undefined when no such contact exists', () => {
+        it('#getContactById() should return undefined when no such contact exists', async () => {
             chatService.contacts$.next(contacts);
-            expect(chatService.getContactById('non@existing.com')).toBeUndefined();
+            expect(await chatService.getContactById('non@existing.com')).toBeUndefined();
         });
     });
 
@@ -78,7 +78,7 @@ describe('XmppChatAdapter', () => {
             );
         });
 
-        it('#messages$ should not emit contact on sending messages', () => {
+        it('#messages$ should not emit contact on sending messages', async () => {
             return new Promise<void>((resolve) => {
                 let emitted = false;
                 chatService.message$.pipe(first()).subscribe(() => emitted = true);

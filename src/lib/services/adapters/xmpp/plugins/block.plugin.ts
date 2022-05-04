@@ -68,8 +68,8 @@ export class BlockPlugin implements ChatPlugin {
         //  this workaround exists because strophe does not handle promises returned by handlers
         const blockList = await this.xmppChatAdapter.blockedContactJids$.pipe(first()).toPromise();
         const handler = (stanza: Element) => {
-            const blockPush = Array.from(stanza.querySelectorAll('block')).find(el => el.namespaceURI === this.nameSpace);
-            const unblockPush = Array.from(stanza.querySelectorAll('unblock')).find(el => el.namespaceURI === this.nameSpace);
+            const blockPush = Array.from(stanza.querySelectorAll('block')).find(el => el.getAttribute('xmlns') === this.nameSpace);
+            const unblockPush = Array.from(stanza.querySelectorAll('unblock')).find(el => el.getAttribute('xmlns') === this.nameSpace);
 
 
             if (!blockPush && !unblockPush) {

@@ -3,7 +3,7 @@ import {Locator} from 'playwright-core';
 import {ChatWindowPage} from './chat-window.po';
 
 export class AppPage {
-    readonly errorLogs = [];
+    readonly errorLogs: string[] = [];
 
     private readonly domainInput: Locator;
     private readonly serviceInput: Locator;
@@ -102,7 +102,7 @@ export class AppPage {
     }
 
     async unblockContact(jid: string): Promise<void> {
-        await this.page.pause()
+        await this.page.pause();
         await this.contactJid.fill(jid);
         await this.unblockContactButton.click();
     }
@@ -173,14 +173,14 @@ export class AppPage {
     }
 }
 
-async function waitForAngular(page) {
+async function waitForAngular(page: Page) {
     await page.evaluate(async () => {
         // @ts-expect-error
         if (window.getAllAngularTestabilities) {
             // @ts-expect-error
             await Promise.all(window.getAllAngularTestabilities().map(whenStable));
 
-            async function whenStable(testability) {
+            async function whenStable(testability: any) {
                 return new Promise((res) => testability.whenStable(res));
             }
         }

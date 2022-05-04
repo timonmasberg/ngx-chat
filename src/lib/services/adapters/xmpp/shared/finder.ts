@@ -18,18 +18,19 @@ export class Finder {
     }
 
     searchByTag(tagName: string): Finder {
-        const helper = new Element();
-        helper.append(...this.currentElements);
-        this.currentElements = Array.from(helper.querySelectorAll(tagName));
+        this.currentElements = this.currentElements.reduce((acc: Element[], el: Element) => {
+            acc.push(...Array.from(el.querySelectorAll(tagName)));
+            return acc;
+        }, []);
         return this;
     }
 
     searchByNamespace(nameSpace: string): Finder {
-        this.currentElements = this.currentElements.filter(el => el.namespaceURI === nameSpace);
+        this.currentElements = this.currentElements.filter(el => el.getAttribute('xmlns') === nameSpace);
         return this;
     }
 
-    searchByAttribute(attributeName: string, attributeValue): Finder {
+    searchByAttribute(attributeName: string, attributeValue: string): Finder {
         this.currentElements = this.currentElements.filter(el => el.getAttribute(attributeName) === attributeValue);
         return this;
     }

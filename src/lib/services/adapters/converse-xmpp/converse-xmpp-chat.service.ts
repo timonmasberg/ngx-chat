@@ -1,13 +1,16 @@
 import {Injectable} from '@angular/core';
-import {ChatAction, ChatService, ConnectionStates, RoomCreationOptions, RoomSummary} from '../xmpp/interface/chat.service';
+import {ChatAction, ChatService, ConnectionStates} from '../xmpp/interface/chat.service';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {LogInRequest} from '../../../core/log-in-request';
 import {Contact} from '../../../core/contact';
 import {Recipient} from '../../../core/recipient';
 import {Room} from '../../../core/room';
-import {ChatConnection, FileUploadHandler, Form, JidToNumber, Message, MessageState, RoomUser} from '../../../../public-api';
+import {ChatConnection, FileUploadHandler, Form, JidToNumber, Message, MessageState} from '../../../../public-api';
 import {JID} from '@xmpp/jid';
 import {defaultTranslations} from '../../../core/translations-default';
+import { Invitation } from '../xmpp/plugins/multi-user-chat/invitation';
+import {RoomOccupant} from '../xmpp/plugins/multi-user-chat/room-occupant';
+import {RoomCreationOptions} from '../xmpp/plugins/multi-user-chat/room-creation-options';
 
 @Injectable()
 export class ConverseXmppChatService implements ChatService {
@@ -57,7 +60,7 @@ export class ConverseXmppChatService implements ChatService {
     }
 
     async logOut(): Promise<void> {
-        await globalThis._converse.api.user.logout();
+        // await globalThis._converse.api.user.logout();
     }
 
     sendMessage(recipient: Recipient, body: string): Promise<void> {
@@ -69,12 +72,12 @@ export class ConverseXmppChatService implements ChatService {
     }
 
     reconnectSilently(): Promise<void> {
-        globalThis._converse.api.connection.reconnect();
+        // globalThis._converse.api.connection.reconnect();
         return Promise.resolve();
     }
 
     reconnect(): Promise<void> {
-        globalThis._converse.api.connection.reconnect();
+        // globalThis._converse.api.connection.reconnect();
         return Promise.resolve();
     }
 
@@ -90,8 +93,8 @@ export class ConverseXmppChatService implements ChatService {
     }
 
 
-    joinRoom(jid: JID) {
-        return null;
+    joinRoom(jid: JID): Promise<Room> {
+        return Promise.resolve(null);
     }
 
     loadMostRecentUnloadedMessages(recipient: Recipient) {
@@ -104,7 +107,7 @@ export class ConverseXmppChatService implements ChatService {
         return Promise.resolve(undefined);
     }
 
-    queryRoomUserList(roomJid: JID): Promise<RoomUser[]> {
+    queryRoomUserList(roomJid: JID): Promise<RoomOccupant[]> {
         return Promise.resolve([]);
     }
 
@@ -132,7 +135,7 @@ export class ConverseXmppChatService implements ChatService {
     }
 
 
-    queryAllRooms(): Promise<RoomSummary[]> {
+    queryAllRooms(): Promise<Room[]> {
         return Promise.resolve([]);
     }
 
@@ -230,7 +233,8 @@ export class ConverseXmppChatService implements ChatService {
     readonly afterSendMessage$: Observable<Element>;
     readonly beforeSendMessage$: Observable<Element>;
     readonly chatConnectionService: ChatConnection;
-    readonly onBeforeOnline$: Observable<void>;
+    readonly onBeforeOnline$: Observable<string>;
     readonly onOffline$: Observable<void>;
+    onInvitation$: Observable<Invitation>;
 
 }

@@ -4,16 +4,15 @@ import {JID} from '@xmpp/jid';
 import {Element as XmppElement} from '@xmpp/xml';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {LogInRequest} from '../../../../core/log-in-request';
-import {Stanza} from '../../../../core/stanza';
 import {LogService} from './log.service';
 import {XmppResponseError} from '../shared/xmpp-response.error';
 import {first} from 'rxjs/operators';
 import {ChatConnection, ChatConnectionFactory, ChatStates, ClientStatus} from '../interface/chat-connection';
-import {XmppClientStanzaBuilder} from '../xmpp-client-stanza-builder';
+import {toXMLElement, XmppClientStanzaBuilder} from '../xmpp-client-stanza-builder';
 
 @Injectable()
 export class XmppChatConnectionFactory implements ChatConnectionFactory {
-    create(logService: LogService, afterReceiveMessageSubject: Subject<Element>, afterSendMessageSubject: Subject<Element>, beforeSendMessageSubject: Subject<Element>, onBeforeOnlineSubject: Subject<void>, onOfflineSubject: Subject<void>): ChatConnection {
+    create(logService: LogService, afterReceiveMessageSubject: Subject<Element>, afterSendMessageSubject: Subject<Element>, beforeSendMessageSubject: Subject<Element>, onBeforeOnlineSubject: Subject<string>, onOfflineSubject: Subject<void>): ChatConnection {
         return new XmppChatConnectionService(
             logService,
             afterReceiveMessageSubject,
@@ -39,7 +38,7 @@ export class XmppChatConnectionService implements ChatConnection {
 
     private readonly userJidSubject = new Subject<string>();
     private requestId = new Date().getTime();
-    private readonly stanzaResponseHandlers = new Map<string, [(stanza: Stanza) => void, (e: Error) => void]>();
+    private readonly stanzaResponseHandlers = new Map<string, [(stanza: XmppElement) => void, (e: Error) => void]>();
     private client?: Client;
 
     constructor(
@@ -47,7 +46,7 @@ export class XmppChatConnectionService implements ChatConnection {
         private readonly afterReceiveMessageSubject: Subject<Element>,
         private readonly afterSendMessageSubject: Subject<Element>,
         private readonly beforeSendMessageSubject: Subject<Element>,
-        private readonly onBeforeOnlineSubject: Subject<void>,
+        private readonly onBeforeOnlineSubject: Subject<string>,
         private readonly onOfflineSubject: Subject<void>,
     ) {
         this.userJid$ = this.userJidSubject.asObservable();
@@ -69,7 +68,7 @@ export class XmppChatConnectionService implements ChatConnection {
         await this.client.send(content);
     }
 
-    public async sendAwaitingResponse(request: XmppElement): Promise<Element> {
+    public async sendAwaitingResponse(request: XmppElement): Promise<XmppElement> {
         const from = await this.userJid$.pipe(first()).toPromise();
         return new Promise((resolve, reject) => {
             const id = this.getNextRequestId();
@@ -78,8 +77,8 @@ export class XmppChatConnectionService implements ChatConnection {
 
             this.stanzaResponseHandlers.set(id, [
                 (response) => {
-                    if (response.getAttribute('type') === 'error') {
-                        reject(new XmppResponseError(response));
+                    if (response.attrs.type === 'error') {
+                        reject(XmppResponseError.create(toXMLElement(response)));
                         return;
                     }
 
@@ -96,20 +95,20 @@ export class XmppChatConnectionService implements ChatConnection {
         });
     }
 
-    public onStanzaReceived(stanza: Stanza): void {
+    public onStanzaReceived(stanza: XmppElement): void {
         let handled = false;
         this.afterReceiveMessageSubject.next();
 
-        const [handleResponse] = this.stanzaResponseHandlers.get(stanza.getAttribute('id')) ?? [];
+        const [handleResponse] = this.stanzaResponseHandlers.get(stanza.attrs.id) ?? [];
         if (handleResponse) {
             this.logService.debug('<<<', stanza.toString(), 'handled by response handler');
-            this.stanzaResponseHandlers.delete(stanza.getAttribute('id'));
+            this.stanzaResponseHandlers.delete(stanza.attrs.id);
             handleResponse(stanza);
             handled = true;
         }
 
         if (!handled) {
-            this.stanzaUnknown$.next(stanza);
+            this.stanzaUnknown$.next(toXMLElement(stanza));
         }
     }
 
@@ -120,6 +119,8 @@ export class XmppChatConnectionService implements ChatConnection {
             this.logService.warn('username should not contain domain, only local part, this can lead to errors!');
         }
 
+        const jid = logInRequest.username + '@' + logInRequest.domain;
+        this.onBeforeOnlineSubject.next(jid);
         this.client = client(logInRequest);
 
         this.client.on('error', (err: any) => this.logService.error('chat service error =>', err.toString(), err));
@@ -149,7 +150,7 @@ export class XmppChatConnectionService implements ChatConnection {
             }
         });
 
-        this.client.on('stanza', (stanza: Stanza) => {
+        this.client.on('stanza', (stanza: XmppElement) => {
             if (this.skipXmppClientResponses(stanza)) {
                 return;
             }
@@ -163,9 +164,9 @@ export class XmppChatConnectionService implements ChatConnection {
      * We should skip our iq handling for the following xmpp/client response:
      * - resource bind on start by https://xmpp.org/rfcs/rfc6120.html#bind
      */
-    private skipXmppClientResponses(stanza: Stanza) {
-        const xmppBindNS = 'urn:ietf:params:xml:ns:xmpp-bind';
-        return stanza.querySelector('bind')?.namespaceURI === xmppBindNS;
+    private skipXmppClientResponses(stanza: XmppElement) {
+        const nsBind = 'urn:ietf:params:xml:ns:xmpp-bind';
+        return stanza.is('bind', nsBind);
     }
 
     async logOut(): Promise<void> {
@@ -198,8 +199,8 @@ export class XmppChatConnectionService implements ChatConnection {
     private $build(
         name: string,
         attrs?: Record<string, string>,
-        sendInner = (element) => this.send(element),
-        sendInnerAwaitingResponse = (element) => this.sendAwaitingResponse(element)
+        sendInner = (element: XmppElement) => this.send(element),
+        sendInnerAwaitingResponse = (element: XmppElement) => this.sendAwaitingResponse(element)
     ): XmppClientStanzaBuilder {
         return new XmppClientStanzaBuilder(xml(name, attrs), () => this.getNextRequestId(), sendInner, sendInnerAwaitingResponse);
     }

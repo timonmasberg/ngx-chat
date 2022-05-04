@@ -26,15 +26,21 @@ export class StropheConnection extends Strophe.Connection {
     private readonly userJidSubject = new Subject<string>();
 
     willReconnect$: Observable<void>;
-
     willReconnectSubject = new Subject<void>();
 
-    beforeFetchLoginCredentialsSubject = new Subject<void>();
-    connectionInitializedSubject = new Subject<void>();
     afterResourceBindingSubject = new Subject<void>();
     reconnectedSubject = new Subject<void>();
     connectedSubject = new Subject<void>();
     disconnectedSubject = new Subject<void>();
+
+    // these declarations are for better work on the strophe native functions
+    connected: boolean;
+    _proto: {
+        _reqToData(req: Strophe.Request): Element,
+        _connect_cb(body: Element): Strophe.Status,
+        _no_auth_received(callback: () => void),
+        _abortAllRequests(): void,
+    };
 
     private readonly debouncedReconnect = debounce(this.reconnect, 3000);
 
@@ -70,10 +76,16 @@ export class StropheConnection extends Strophe.Connection {
             credentialsUrl: null,
             prebindUrl: null,
         },
-        service: string,
+        connections: {
+            boshServiceUrl: string,
+            websocketUrl: string,
+            connection_url: string,
+        },
         options = {keepalive: true, explicitResourceBinding: true}
     ) {
-        super(service, options);
+        super(connections.connection_url, options);
+        this.websocketUrl = connections.websocketUrl;
+        this.boshServiceUrl = connections.boshServiceUrl;
         this.userJid$ = this.userJidSubject.asObservable();
         this.willReconnect$ = this.willReconnectSubject.asObservable();
         this.bosh = new Bosh(this, settings.prebindUrl);
@@ -278,7 +290,11 @@ export class StropheConnection extends Strophe.Connection {
                 credentialsUrl: null,
                 prebindUrl: null
             },
-            connection_url,
+            {
+                boshServiceUrl,
+                websocketUrl,
+                connection_url
+            },
         );
 
         if (!connection_url && domain) {
@@ -296,7 +312,7 @@ export class StropheConnection extends Strophe.Connection {
     async onDomainDiscovered(response) {
         const text = await response.text();
         const xrd = (new window.DOMParser()).parseFromString(text, 'text/xml').firstElementChild;
-        if (xrd.nodeName != 'XRD' || xrd.namespaceURI != 'http://docs.oasis-open.org/ns/xri/xrd-1.0') {
+        if (xrd.nodeName != 'XRD' || xrd.getAttribute('xmlns') != 'http://docs.oasis-open.org/ns/xri/xrd-1.0') {
             return this.logService.warn('Could not discover XEP-0156 connection methods');
         }
         const bosh_links = xrd.querySelectorAll(`Link[rel="urn:xmpp:alt-connections:xbosh"]`);
@@ -353,7 +369,7 @@ export class StropheConnection extends Strophe.Connection {
      * @param { String } password
      * @param { Function } callback
      */
-    async connect(jid: string, password: string, callback?: () => void) {
+    async connect(jid: string, password: string, callback?: (status?: number, message?: string) => void) {
         if (this.settings.discoverConnectionMethods) {
             const domain = Strophe.getDomainFromJid(jid);
             await this.discoverConnectionMethods(domain);
@@ -361,7 +377,8 @@ export class StropheConnection extends Strophe.Connection {
         if (!this.boshServiceUrl && !this.websocketUrl) {
             throw new Error('You must supply a value for either the bosh_service_url or websocket_url or both.');
         }
-        super.connect(jid, password, callback || this.onConnectStatusChanged, BOSH_WAIT);
+        const boshWait = 59;
+        super.connect(jid, password, callback || this.onConnectStatusChanged, boshWait);
     }
 
     /**
@@ -401,7 +418,6 @@ export class StropheConnection extends Strophe.Connection {
 
         const isAuthenticationAnonymous = this.settings.authenticationMode === AuthenticationMode.ANONYMOUS;
 
-        // TODO delete ;const conn_status = _converse.connfeedback.get('connection_status');
         if (this.connectionStatus.status === Strophe.Status.CONNFAIL) {
             await this.switchTransport();
         } else if (this.connectionStatus.status === Strophe.Status.AUTHFAIL && isAuthenticationAnonymous) {
@@ -418,7 +434,6 @@ export class StropheConnection extends Strophe.Connection {
         /**
          * Triggered when the connection has dropped, but Converse will attempt
          * to reconnect again.
-         * @event _converse#will-reconnect
          */
         this.willReconnectSubject.next();
 
@@ -675,10 +690,10 @@ export class StropheConnection extends Strophe.Connection {
     async setUserJID(jid: string) {
         /**
          * Triggered whenever the user's JID has been updated
-         * @event _converse#setUserJID
          */
-        this.userJidSubject.next(jid);
-        return jid;
+        this.jid = jid;
+        this.userJidSubject.next(this.jid);
+        return this.jid;
     }
 
 
@@ -691,6 +706,28 @@ export class StropheConnection extends Strophe.Connection {
 
     killSessionBosh() {
         this.clearSession();
+    }
+
+    _changeConnectStatus(status: number, condition?: string, elem?: Element) {
+        super._changeConnectStatus(status, condition, elem);
+    }
+
+    /** PrivateFunction: _addSysHandler
+     *  _Private_ function to add a system level stanza handler.
+     *
+     *  This function is used to add a Strophe.Handler for the
+     *  library code.  System stanza handlers are allowed to run before
+     *  authentication is complete.
+     *
+     *  Parameters:
+     *    @param {(element: Element) => boolean} handler - The callback function.
+     *    @param {string} ns - The namespace to match.
+     *    @param {string} name - The stanza name to match.
+     *    @param {string} type - The stanza type attribute to match.
+     *    @param {string} id - The stanza id attribute to match.
+     */
+    _addSysHandler(handler: (element: Element) => boolean, ns: string, name: string, type: string, id: string) {
+        return super._addSysHandler(handler, ns, name, type, id);
     }
 }
 

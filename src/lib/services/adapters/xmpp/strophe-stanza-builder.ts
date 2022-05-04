@@ -19,7 +19,7 @@ export class StropheStanzaBuilder implements Builder {
     }
 
     c(name: string, attrs?: Record<string, string>, text?: string): Builder {
-        this.stropheBuilder = this.stropheBuilder.c(name, attrs);
+        this.stropheBuilder = this.stropheBuilder.c(name, attrs, text);
         return this;
     }
 
@@ -64,16 +64,13 @@ export class StropheStanzaBuilder implements Builder {
 export class MockBuilder {
     static build(
         name: string,
-        attrs: Record<string, string>,
+        attrs: Record<string, string>
     ): StropheStanzaBuilder {
-        return new StropheStanzaBuilder($build(name, attrs), Promise.resolve, (el) => Promise.resolve(null));
+        return new StropheStanzaBuilder($build(name, attrs), Promise.resolve, Promise.resolve);
     }
 
     static $iq(attrs?: Record<string, string>): StropheStanzaBuilder {
-        return MockBuilder.build(
-            'iq',
-            attrs,
-        );
+        return MockBuilder.build('iq', attrs);
     }
 
     static $msg(attrs?: Record<string, string>): StropheStanzaBuilder {
@@ -81,9 +78,6 @@ export class MockBuilder {
     }
 
     static $pres(attrs?: Record<string, string>): StropheStanzaBuilder {
-        return MockBuilder.build(
-            'presence',
-            attrs,
-        );
+        return MockBuilder.build('presence', attrs);
     }
 }
