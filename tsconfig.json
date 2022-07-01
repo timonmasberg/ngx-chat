@@ -24,6 +24,9 @@
     // and it would compile but the editors are not aware that demo/tsconfig.app.json is handled by ng-cli as if it
     // was located in the project root and so a lot of false positive issues are displayed
     "paths": {
+      "strophe.js": [
+        "./src/manual_typings/strophe"
+      ],
       "@angular/*": [
         "./node_modules/@angular/*"
       ],

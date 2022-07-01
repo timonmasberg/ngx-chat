@@ -2,7 +2,6 @@ import {TestBed} from '@angular/core/testing';
 import {jid as parseJid} from '@xmpp/client';
 import {filter, first, map} from 'rxjs/operators';
 import {Direction} from '../../../../../core/message';
-import {Stanza} from '../../../../../core/stanza';
 import {testLogService} from '../../../../../test/log-service';
 import {ContactFactoryService} from '../../service/contact-factory.service';
 import {LogService} from '../../service/log.service';
@@ -12,7 +11,6 @@ import {Affiliation} from './affiliation';
 import {Role} from './role';
 import {OccupantNickChange} from './occupant-change';
 import {Invitation} from './invitation';
-import {Finder} from '../../shared/finder';
 import {CHAT_CONNECTION_FACTORY_TOKEN} from '../../interface/chat-connection';
 import {CHAT_SERVICE_TOKEN} from '../../interface/chat.service';
 import {ChatMessageListRegistryService} from '../../../../components/chat-message-list-registry.service';
@@ -110,7 +108,7 @@ fdescribe('multi user chat plugin', () => {
         await client.register(ghostLogin);
     }, 15000);
 
-    describe('room creation', () => {
+    fdescribe('room creation', () => {
         it('should throw if user tries to create the same room multiple times', async () => {
             await chatService.logIn(romeoLogin);
             await chatService.createRoom(romeosRoom);
@@ -297,7 +295,8 @@ fdescribe('multi user chat plugin', () => {
             await destroyRoomAsGhost();
         });
 
-        fit('should be able to query only for rooms joined', async () => {
+        it('should be able to query only for rooms joined', async () => {
+            pending('Needs the bookmark plugin implementation');
             await createRoomsAsGhost();
             await joinGhostRoomsAsRomeo();
             await chatService.logOut();
@@ -329,6 +328,7 @@ fdescribe('multi user chat plugin', () => {
         });
 
         it('should be able to keep the rooms when logging out and and in', async () => {
+            pending('Needs the bookmark plugin implementation');
             // await createRoomsAsGhost();
             await joinGhostRoomsAsRomeo();
 

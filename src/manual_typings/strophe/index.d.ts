@@ -4,7 +4,6 @@
 //                 David Deutsch <https://github.com/DavidKDeutsch>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 // TypeScript Version: 3.2
-export {};
 
 declare global {
 
@@ -169,21 +168,24 @@ declare global {
          *  Status.REDIRECT - The connection has been redirected
          *  Status.CONNTIMEOUT - The connection has timed out
          */
-        enum Status {
-            ERROR = 0,
-            CONNECTING = 1,
-            CONNFAIL = 2,
-            AUTHENTICATING = 3,
-            AUTHFAIL = 4,
-            CONNECTED = 5,
-            DISCONNECTED = 6,
-            DISCONNECTING = 7,
-            ATTACHED = 8,
-            REDIRECT = 9,
-            CONNTIMEOUT = 10,
-            BINDREQUIRED = 11,
-            ATTACHFAIL = 12
+        const Status: {
+            ERROR: 0,
+            CONNECTING: 1,
+            CONNFAIL: 2,
+            AUTHENTICATING: 3,
+            AUTHFAIL: 4,
+            CONNECTED: 5,
+            DISCONNECTED: 6,
+            DISCONNECTING: 7,
+            ATTACHED: 8,
+            REDIRECT: 9,
+            CONNTIMEOUT: 10,
+            BINDREQUIRED: 11,
+            ATTACHFAIL: 12,
+            RECONNECTING?: number,
         }
+
+        type Status = Record<keyof typeof Status, number>;
 
         /** Constants: Error Condition Constants
          * Error conditions that occur commonly.
@@ -1680,8 +1682,8 @@ declare global {
              */
             addHandler(
                 handler: (stanza: Element) => boolean,
-                ns: string,
-                name: string,
+                ns?: string,
+                name?: string,
                 type?: string | string[],
                 id?: string,
                 from?: string,
@@ -1893,7 +1895,7 @@ declare global {
              *  Returns:
              *   @returns A new Strophe.WorkerWebsocket object.
              */
-            constructor (connection: Connection);
+            constructor(connection: Connection);
 
             /** PrivateFunction: _replaceMessageHandler
              *
@@ -1907,7 +1909,7 @@ declare global {
             /** PrivateFunction: _onWorkerMessage
              * _Private_ function that handles messages received from the service worker
              */
-            _onWorkerMessage (ev:{data:[method_name: '_onMessage', message: string] | [method_name: 'log', message: string]});
+            _onWorkerMessage(ev: { data: [method_name: '_onMessage', message: string] | [method_name: 'log', message: string] });
         }
 
         /** PrivateClass: Strophe.Request
@@ -2029,22 +2031,4 @@ declare global {
     const BOSH_WAIT = 59;
 }
 
-declare module 'Strophe' {
-    export = Strophe;
-}
-
-declare module '$build' {
-    export = $build;
-}
-
-declare module '$msg' {
-    export = $msg;
-}
-
-declare module '$iq' {
-    export = $iq;
-}
-
-declare module '$pres' {
-    export = $pres;
-}
+export {Strophe, $build, $msg, $iq, $pres};

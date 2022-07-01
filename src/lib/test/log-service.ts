@@ -1,5 +1,5 @@
 import { LogLevel, LogService } from '../services/adapters/xmpp/service/log.service';
-import { currentSpecReporter } from './reporter.spec';
+// import { currentSpecReporter } from './reporter.spec';
 
 export function testLogService() {
     const logService = new LogService();

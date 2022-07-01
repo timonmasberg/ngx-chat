@@ -140,7 +140,7 @@ export class RegistrationPlugin {
             StropheRegisterStatus.NOTACCEPTABLE,
             StropheRegisterStatus.CONFLICT
         ].includes(status_code)) {
-            this.connectionService.connection._proto._abortAllRequests();
+            (this.connectionService.connection._proto as any)._abortAllRequests();
             this.connectionService.connection.reset();
         } else if (status_code === StropheRegisterStatus.REGISTERED) {
             this.connectionService.connection.reset();

@@ -8,7 +8,7 @@ import {Strophe} from 'strophe.js';
 import {ChatConnection, ChatConnectionFactory} from '../interface/chat-connection';
 import {StropheStanzaBuilder} from '../strophe-stanza-builder';
 import {StropheConnection} from '../strophe-connection';
-import {filter, tap} from 'rxjs/operators';
+import {filter} from 'rxjs/operators';
 import {XmppResponseError} from '../shared/xmpp-response.error';
 
 export type XmppChatStates = 'disconnected' | 'online' | 'reconnecting';
@@ -78,7 +78,7 @@ export class StropheChatConnectionService implements ChatConnection {
     }
 
     deleteHandler(handlerRef: object) {
-        this.connection.deleteHandler(handlerRef);
+        this.connection.deleteHandler(handlerRef as Strophe.Handler);
     }
 
     onOnline(jid: JID): void {
@@ -136,10 +136,13 @@ export class StropheChatConnectionService implements ChatConnection {
                         this.onOffline();
                         break;
                     default:
-                        this.logService.error('Unhandled connection status: ', status)
+                        this.logService.error('Unhandled connection status: ', status);
                 }
             });
-            this.connection.addHandler((el) => this.afterReceiveMessageSubject.next(el), null, 'message');
+            this.connection.addHandler((el) => {
+                this.afterReceiveMessageSubject.next(el);
+                return true;
+            }, null, 'message');
         });
     }
 
@@ -175,7 +178,9 @@ export class StropheChatConnectionService implements ChatConnection {
         return this.$build(
             'iq',
             attrs,
-            async (el: Element) => this.connection.sendIQ(el),
+            async (el: Element) => {
+                this.connection.sendIQ(el);
+            },
             async (el: Element) => new Promise<Element>((resolve, reject) => this.connection.sendIQ(el, resolve, (el) => reject(XmppResponseError.create(el))))
         );
     }
@@ -201,7 +206,9 @@ export class StropheChatConnectionService implements ChatConnection {
         return this.$build(
             'presence',
             attrs,
-            async (el: Element) => this.connection.sendPresence(el),
+            async (el: Element) => {
+                this.connection.sendPresence(el);
+            },
             async (el: Element) => new Promise<Element>((resolve, reject) => this.connection.sendPresence(el, resolve, (el) => reject(XmppResponseError.create(el))))
         );
     }

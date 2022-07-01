@@ -35,7 +35,7 @@ export class StropheConnection extends Strophe.Connection {
 
     // these declarations are for better work on the strophe native functions
     connected: boolean;
-    _proto: {
+    _proto: (Strophe.Websocket | Strophe.Bosh | Strophe.WorkerWebsocket) & {
         _reqToData(req: Strophe.Request): Element,
         _connect_cb(body: Element): Strophe.Status,
         _no_auth_received(callback: () => void),
@@ -56,12 +56,10 @@ export class StropheConnection extends Strophe.Connection {
 
     private websocketUrl: string;
     private boshServiceUrl: string;
-    private service: string;
 
     private disconnectionCause: Strophe.Status;
     private disconnectionReason: string;
     private send_initial_presence: boolean;
-    private restored: boolean;
 
 
     private constructor(
@@ -246,7 +244,7 @@ export class StropheConnection extends Strophe.Connection {
                         'authentication=\'login\' then you also need to provide a password.');
                 }
                 this.setDisconnectionCause(Strophe.Status.AUTHFAIL, undefined, true);
-                super.disconnect();
+                super.disconnect('');
                 return;
             }
             if (!this.reconnecting) {
@@ -369,7 +367,7 @@ export class StropheConnection extends Strophe.Connection {
      * @param { String } password
      * @param { Function } callback
      */
-    async connect(jid: string, password: string, callback?: (status?: number, message?: string) => void) {
+    async connect(jid: string, password: string, callback?: (status: Strophe.Status, condition: string, elem: Element) => unknown) {
         if (this.settings.discoverConnectionMethods) {
             const domain = Strophe.getDomainFromJid(jid);
             await this.discoverConnectionMethods(domain);

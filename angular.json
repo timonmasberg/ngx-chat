@@ -61,30 +61,6 @@
                   "maximumError": "10kb"
                 }
               ]
-            },
-            "jsxc": {
-              "fileReplacements": [
-                {
-                  "replace": "demo/environments/environment.ts",
-                  "with": "demo/environments/environment.jsxc.ts"
-                }
-              ]
-            },
-            "converse": {
-              "fileReplacements": [
-                {
-                  "replace": "demo/environments/environment.ts",
-                  "with": "demo/environments/environment.converse.ts"
-                }
-              ]
-            },
-            "pazz": {
-              "fileReplacements": [
-                {
-                  "replace": "demo/environments/environment.ts",
-                  "with": "demo/environments/environment.pazz.ts"
-                }
-              ]
             }
           },
           "defaultConfiguration": ""
@@ -120,7 +96,7 @@
               "**/node_modules/**"
             ]
           }
-        },
+        }
       }
     },
     "@pazznetwork/ngx-chat": {

@@ -29,7 +29,6 @@ import {CHAT_SERVICE_TOKEN, ChatService} from './services/adapters/xmpp/interfac
 import {ContactFactoryService} from './services/adapters/xmpp/service/contact-factory.service';
 import {LogService} from './services/adapters/xmpp/service/log.service';
 import {FILE_UPLOAD_HANDLER_TOKEN} from './hooks/file-upload-handler';
-import {ConverseXmppChatService} from './services/adapters/converse-xmpp/converse-xmpp-chat.service';
 import {ChatMessageContactComponent} from './components/chat-message-contact/chat-message-contact.component';
 import {StropheChatConnectionFactory} from './services/adapters/xmpp/service/strophe-chat-connection.service';
 
