@@ -81,9 +81,13 @@ export class NgxChatModule {
                 ContactFactoryService,
                 LogService,
                 {
+                    provide: CHAT_CONNECTION_FACTORY_TOKEN,
+                    useClass: StropheChatConnectionFactory,
+                },
+                {
                     provide: CHAT_SERVICE_TOKEN,
                     deps: [
-                        StropheChatConnectionFactory,
+                        CHAT_CONNECTION_FACTORY_TOKEN,
                         ChatMessageListRegistryService,
                         ContactFactoryService,
                         HttpClient,
@@ -97,10 +101,6 @@ export class NgxChatModule {
                     deps: [CHAT_SERVICE_TOKEN],
                     useFactory: NgxChatModule.fileUploadHandlerFactory,
                 },
-                {
-                    provide: CHAT_CONNECTION_FACTORY_TOKEN,
-                    useClass: StropheChatConnectionFactory
-                }
             ],
         };
 

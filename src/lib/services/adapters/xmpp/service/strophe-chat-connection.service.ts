@@ -1,4 +1,3 @@
-import {Injectable} from '@angular/core';
 import {JID} from '@xmpp/jid';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {LogInRequest} from '../../../../core/log-in-request';
@@ -13,7 +12,6 @@ import {XmppResponseError} from '../shared/xmpp-response.error';
 
 export type XmppChatStates = 'disconnected' | 'online' | 'reconnecting';
 
-@Injectable()
 export class StropheChatConnectionFactory implements ChatConnectionFactory {
     create(logService: LogService,
            afterReceiveMessageSubject: Subject<Element>,

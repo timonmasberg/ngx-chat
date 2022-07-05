@@ -60,7 +60,7 @@ export class MucComponent implements OnInit, OnDestroy {
                     return;
                 }
 
-                const updatedRoom = rooms.find((room) => room.roomJid.equals(this.currentRoom.roomJid));
+                const updatedRoom = rooms.find((room) => room.jid.equals(this.currentRoom.jid));
                 if (updatedRoom) {
                     this.selectedRoomSubject.next(updatedRoom);
                 }
@@ -114,43 +114,43 @@ export class MucComponent implements OnInit, OnDestroy {
     }
 
     async leaveRoom() {
-        await this.chatService.leaveRoom(this.currentRoom.roomJid);
+        await this.chatService.leaveRoom(this.currentRoom.jid);
         this.selectedRoomSubject.next(null);
     }
 
     async changeRoomSubject() {
-        await this.chatService.changeRoomSubject(this.currentRoom.roomJid, this.subject);
+        await this.chatService.changeRoomSubject(this.currentRoom.jid, this.subject);
     }
 
     async inviteUser() {
-        await this.chatService.inviteUserToRoom(jid(this.inviteJid), this.currentRoom.roomJid);
+        await this.chatService.inviteUserToRoom(jid(this.inviteJid), this.currentRoom.jid);
     }
 
     async changeNick() {
-        await this.chatService.changeUserNicknameForRoom(this.nick, this.currentRoom.roomJid);
+        await this.chatService.changeUserNicknameForRoom(this.nick, this.currentRoom.jid);
     }
 
     async kick(occupant: RoomOccupant) {
-        await this.chatService.kickOccupant(occupant.nick, this.currentRoom.roomJid);
+        await this.chatService.kickOccupant(occupant.nick, this.currentRoom.jid);
     }
 
     async ban(occupant: RoomOccupant) {
-        await this.chatService.banUserForRoom(occupant.occupantJid, this.currentRoom.roomJid);
+        await this.chatService.banUserForRoom(occupant.jid, this.currentRoom.jid);
     }
 
     async grantMembership() {
-        await this.chatService.grantMembershipForRoom(jid(this.memberJid), this.currentRoom.roomJid);
+        await this.chatService.grantMembershipForRoom(jid(this.memberJid), this.currentRoom.jid);
     }
 
     async revokeMembership() {
-        await this.chatService.revokeMembershipForRoom(jid(this.memberJid), this.currentRoom.roomJid);
+        await this.chatService.revokeMembershipForRoom(jid(this.memberJid), this.currentRoom.jid);
     }
 
     async grantModeratorStatus() {
-        await this.chatService.grantModeratorStatusForRoom(this.moderatorNick, this.currentRoom.roomJid);
+        await this.chatService.grantModeratorStatusForRoom(this.moderatorNick, this.currentRoom.jid);
     }
 
     async revokeModeratorStatus() {
-        await this.chatService.revokeModeratorStatusForRoom(this.moderatorNick, this.currentRoom.roomJid);
+        await this.chatService.revokeModeratorStatusForRoom(this.moderatorNick, this.currentRoom.jid);
     }
 }

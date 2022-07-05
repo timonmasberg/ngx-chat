@@ -35,12 +35,6 @@ export class StropheConnection extends Strophe.Connection {
 
     // these declarations are for better work on the strophe native functions
     connected: boolean;
-    _proto: (Strophe.Websocket | Strophe.Bosh | Strophe.WorkerWebsocket) & {
-        _reqToData(req: Strophe.Request): Element,
-        _connect_cb(body: Element): Strophe.Status,
-        _no_auth_received(callback: () => void),
-        _abortAllRequests(): void,
-    };
 
     private readonly debouncedReconnect = debounce(this.reconnect, 3000);
 
@@ -96,7 +90,6 @@ export class StropheConnection extends Strophe.Connection {
      * to log the user in by calling the `prebind_url` or `credentials_url` depending
      * on whether prebinding is used or not.
      *
-     * @method _converse.api.user.login
      * @param {string} [jid]
      * @param {string} [password]
      * @param {boolean} [automatic=false] - An internally used flag that indicates whether
@@ -430,7 +423,7 @@ export class StropheConnection extends Strophe.Connection {
             'The connection has dropped, attempting to reconnect.'
         );
         /**
-         * Triggered when the connection has dropped, but Converse will attempt
+         * Triggered when the connection has dropped, but we will attempt
          * to reconnect again.
          */
         this.willReconnectSubject.next();
@@ -446,7 +439,7 @@ export class StropheConnection extends Strophe.Connection {
      * Called as soon as a new connection has been established, either
      * by logging in or by attaching to an existing BOSH session.
      * @method Connection.onConnected
-     * @param { Boolean } reconnecting - Whether Converse.js reconnected from an earlier dropped session.
+     * @param {boolean} reconnecting - Whether we reconnected from an earlier dropped session.
      */
     async onConnected(reconnecting: boolean) {
         delete this.reconnecting;
@@ -456,24 +449,18 @@ export class StropheConnection extends Strophe.Connection {
         /**
          * Synchronous event triggered after we've sent an IQ to bind the
          * user's JID resource for this session.
-         * @event _converse#afterResourceBinding
          */
         this.afterResourceBindingSubject.next();
 
         if (reconnecting) {
             /**
-             * After the connection has dropped and converse.js has reconnected.
-             * Any Strophe stanza handlers (as registered via `converse.listen.stanza`) will
-             * have to be registered anew.
-             * @event _converse#reconnected
-             * @example _converse.api.listen.on('reconnected', () => { ... });
+             * After the connection has dropped and we have reconnected.
+             * Any Strophe stanza handlers will have to be registered anew.
              */
             this.reconnectedSubject.next();
         } else {
             /**
-             * Triggered after the connection has been established and Converse
-             * has got all its ducks in a row.
-             * @event _converse#initialized
+             * Triggered after the connection has been established
              */
             this.connectedSubject.next();
         }
@@ -483,10 +470,10 @@ export class StropheConnection extends Strophe.Connection {
      * Used to keep track of why we got disconnected, so that we can
      * decide on what the next appropriate action is (in onDisconnected)
      * @method Connection.setDisconnectionCause
-     * @param { Number } cause - The status number as received from Strophe.
-     * @param { String } [reason] - An optional user-facing message as to why
+     * @param {number} cause - The status number as received from Strophe.
+     * @param {string} [reason] - An optional user-facing message as to why
      *  there was a disconnection.
-     * @param { Boolean } [override] - An optional flag to replace any previous
+     * @param {boolean} [override] - An optional flag to replace any previous
      *  disconnection cause and reason.
      */
     setDisconnectionCause(cause: number, reason?: string, override = false) {
@@ -511,10 +498,7 @@ export class StropheConnection extends Strophe.Connection {
         super.reset();
         await this.clearSession();
         /**
-         * Triggered after converse.js has disconnected from the XMPP server.
-         * @event _converse#disconnected
-         * @memberOf _converse
-         * @example _converse.api.listen.on('disconnected', () => { ... });
+         * Triggered after we disconnected from the XMPP server.
          */
         this.disconnectedSubject.next();
     }
@@ -550,7 +534,7 @@ export class StropheConnection extends Strophe.Connection {
                 );
                 return this.finishDisconnection();
             } else if (
-                this.disconnectionCause === 'logout' ||
+                this.disconnectionCause === Strophe.Status.DISCONNECTING ||
                 reason === Strophe.ErrorCondition.NO_AUTH_MECH ||
                 reason === 'host-unknown' ||
                 reason === 'remote-connection-failed'
@@ -581,8 +565,8 @@ export class StropheConnection extends Strophe.Connection {
      * Callback method called by Strophe as the Connection goes
      * through various states while establishing or tearing down a
      * connection.
-     * @param { Number } status
-     * @param { String } message
+     * @param {number} status
+     * @param {string} message
      */
     async onConnectStatusChanged(status: Strophe.Status, message: string) {
         this.logService.debug(`Status changed to: ${this.CONNECTION_STATUS[status]}`);
@@ -677,13 +661,8 @@ export class StropheConnection extends Strophe.Connection {
      * Stores the passed in JID for the current user, potentially creating a
      * resource if the JID is bare.
      *
-     * Given that we can only create an XMPP connection if we know the domain of
-     * the server connect to and we only know this once we know the JID, we also
-     * call {@link _converse.initConnection } (if necessary) to make sure that the
-     * connection is set up.
-     *
-     * @emits _converse#setUserJID
-     * @params { String } jid
+     * @emits userJidSubject
+     * @param {string} jid
      */
     async setUserJID(jid: string) {
         /**
@@ -731,15 +710,7 @@ export class StropheConnection extends Strophe.Connection {
 
 
 export function getOpenPromise<T>() {
-    interface PromiseWrapper<T> {
-        isResolved: boolean,
-        isPending: boolean,
-        isRejected: boolean,
-        resolve?: (value: T | PromiseLike<T>) => void,
-        reject: (reason?: any) => void,
-    }
-
-    let wrapper: PromiseWrapper<T>;
+    let wrapper: Strophe.PromiseWrapper<T>;
     const promise = Object.assign(new Promise<T>((resolve, reject) => {
         wrapper = {
             isResolved: false,

@@ -97,7 +97,7 @@ export class XmppChatConnectionService implements ChatConnection {
 
     public onStanzaReceived(stanza: XmppElement): void {
         let handled = false;
-        this.afterReceiveMessageSubject.next();
+        this.afterReceiveMessageSubject.next(toXMLElement(stanza));
 
         const [handleResponse] = this.stanzaResponseHandlers.get(stanza.attrs.id) ?? [];
         if (handleResponse) {
@@ -114,7 +114,6 @@ export class XmppChatConnectionService implements ChatConnection {
 
     /*** TODO: reuse client for same Domain **/
     async logIn(logInRequest: LogInRequest): Promise<void> {
-        this.onBeforeOnlineSubject.next();
         if (logInRequest.username.indexOf('@') > -1) {
             this.logService.warn('username should not contain domain, only local part, this can lead to errors!');
         }
@@ -212,11 +211,11 @@ export class XmppChatConnectionService implements ChatConnection {
 
     $msg(attrs?: Record<string, string>): XmppClientStanzaBuilder {
         return this.$build('message', attrs, (element) => {
-                this.beforeSendMessageSubject.next();
+                this.beforeSendMessageSubject.next(toXMLElement(element));
                 return this.send(element);
             },
             (element) => {
-                this.beforeSendMessageSubject.next();
+                this.beforeSendMessageSubject.next(toXMLElement(element));
                 return this.sendAwaitingResponse(element);
             });
     }

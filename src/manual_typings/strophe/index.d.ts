@@ -182,10 +182,10 @@ declare global {
             CONNTIMEOUT: 10,
             BINDREQUIRED: 11,
             ATTACHFAIL: 12,
-            RECONNECTING?: number,
+            RECONNECTING: 13,
         }
 
-        type Status = Record<keyof typeof Status, number>;
+        type Status = number;
 
         /** Constants: Error Condition Constants
          * Error conditions that occur commonly.
@@ -1018,6 +1018,14 @@ declare global {
             contentType?: string;
         }
 
+        interface PromiseWrapper<T> {
+            isResolved: boolean,
+            isPending: boolean,
+            isRejected: boolean,
+            resolve?: (value: T | PromiseLike<T>) => void,
+            reject: (reason?: any) => void,
+        }
+
         /** Class: Strophe.Connection
          *  XMPP Connection manager.
          *
@@ -1082,6 +1090,8 @@ declare global {
 
             maxRetries: number;
 
+            status: Status;
+
             /** Variable: authzid
              *  Set on connection.
              *  Authorization identity.
@@ -1111,7 +1121,14 @@ declare global {
             /**
              * protocol used for connection
              */
-            _proto: Strophe.Websocket | Strophe.Bosh | Strophe.WorkerWebsocket;
+            _proto: (Strophe.Websocket | Strophe.Bosh | Strophe.WorkerWebsocket) & {
+                _reqToData(req: Strophe.Request): Element,
+                _connect_cb(body: Element): Strophe.Status,
+                _no_auth_received(callback: () => void),
+                _abortAllRequests(): void,
+            };
+
+            worker_attach_promise?: PromiseWrapper<unknown>;
 
             /** Constructor: Strophe.Connection
              *  Create and initialize a Strophe.Connection object.
@@ -1414,6 +1431,18 @@ declare global {
                 wait?: number,
                 hold?: number,
                 wind?: number
+            ): void;
+
+            /** Function: attach
+             *  Attach to an already created and authenticated BOSH session.
+             *
+             *  This function is provided to attach to a websocket worker
+             *
+             *  Parameters:
+             *    @param callback The connect callback function.
+             */
+            attach(
+                callback?: (status: Status, condition: string, elem: Element) => unknown,
             ): void;
 
             /**
@@ -1818,6 +1847,22 @@ declare global {
              *    @param req - the request used for the connection
              */
             _dataRecv(data: any, req: any): void;
+
+            /** PrivateFunction: _addSysHandler
+             *  _Private_ function to add a system level stanza handler.
+             *
+             *  This function is used to add a Strophe.Handler for the
+             *  library code.  System stanza handlers are allowed to run before
+             *  authentication is complete.
+             *
+             *  Parameters:
+             *    @param {(element: Element) => boolean} handler - The callback function.
+             *    @param {string} ns - The namespace to match.
+             *    @param {string} name - The stanza name to match.
+             *    @param {string} type - The stanza type attribute to match.
+             *    @param {string} id - The stanza id attribute to match.
+             */
+            _addSysHandler(handler: (element: Element) => boolean, ns: string, name: string, type: string, id: string);
         }
 
         /** Class: Strophe.WebSocket

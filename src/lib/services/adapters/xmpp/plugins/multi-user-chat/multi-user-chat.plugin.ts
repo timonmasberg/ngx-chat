@@ -17,7 +17,7 @@ import {Invitation} from './invitation';
 import {RoomMessage} from './room-message';
 import {Form, FORM_NS, getField, parseForm, serializeToSubmitForm, setFieldValue, TextualFormField,} from '../../../../../core/form';
 import {nsMuc, nsMucAdmin, nsMucOwner, nsMucRoomConfigForm, nsMucUser} from './multi-user-chat-constants';
-import {first, map, scan, shareReplay, tap} from 'rxjs/operators';
+import {first, map, scan, shareReplay} from 'rxjs/operators';
 import {StanzaHandlerChatPlugin} from '../../../../../core/plugin';
 import {ChatConnection} from '../../interface/chat-connection';
 import {RoomConfiguration, RoomCreationOptions} from './room-creation-options';

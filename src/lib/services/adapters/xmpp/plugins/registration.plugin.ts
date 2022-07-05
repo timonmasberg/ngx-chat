@@ -93,11 +93,11 @@ export class RegistrationPlugin {
                     }
                     const errorText = error[0].firstElementChild.tagName.toLowerCase();
                     if (errorText === 'conflict') {
-                        this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.CONFLICT, error);
+                        this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.CONFLICT, errorText);
                     } else if (errorText === 'not-acceptable') {
-                        this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.NOTACCEPTABLE, error);
+                        this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.NOTACCEPTABLE, errorText);
                     } else {
-                        this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.REGIFAIL, error);
+                        this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.REGIFAIL, errorText);
                     }
                 } else {
                     this.connectionService.connection._changeConnectStatus(StropheRegisterStatus.REGISTERED, null);
@@ -148,7 +148,7 @@ export class RegistrationPlugin {
 
             // automatically log the user in
             this.connectionService.connection.connect(
-                auth.username.toLowerCase() + '@' + auth.domain.toLowerCase(),
+                auth.username.toLowerCase() +  '@' + auth.domain.toLowerCase(),
                 auth.password,
             );
 
